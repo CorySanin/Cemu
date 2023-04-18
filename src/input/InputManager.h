@@ -82,10 +82,11 @@ public:
 
 		bool left_down_toggle = false;
 		bool right_down_toggle = false;
-	} m_main_mouse{}, m_pad_mouse{}, m_main_touch{}, m_pad_touch{};
+	} m_main_mouse{}, m_pad_mouse{}, m_main_touch{}, m_pad_touch{}, m_main_gyro{};
 	glm::ivec2 get_mouse_position(bool pad_window) const;
 	std::optional<glm::ivec2> get_left_down_mouse_info(bool* is_pad);
 	std::optional<glm::ivec2> get_right_down_mouse_info(bool* is_pad);
+	std::optional<glm::ivec2> get_gyro_mouse_info();
 
 	std::atomic<float> m_mouse_wheel;
 

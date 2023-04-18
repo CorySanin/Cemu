@@ -11,6 +11,12 @@ KeyboardController::KeyboardController()
 
 std::string KeyboardController::get_button_name(uint64 button) const
 {
+	if(button == UINT32_MAX) {
+		return "LEFT_MOUSE";
+	}
+	else if(button == UINT32_MAX - 1) {
+		return "RIGHT_MOUSE";
+	}
 #if BOOST_OS_WINDOWS
 	LONG scan_code = MapVirtualKeyA((UINT)button, MAPVK_VK_TO_VSC_EX);
 	if(HIBYTE(scan_code))
@@ -51,7 +57,14 @@ ControllerState KeyboardController::raw_state()
 {
 	ControllerState result{};
 	boost::container::small_vector<uint32, 16> pressedKeys;
+	auto& instance = InputManager::instance();
 	g_window_info.iter_keystates([&pressedKeys](const std::pair<const uint32, bool>& keyState) { if (keyState.second) pressedKeys.emplace_back(keyState.first); });
+	if (instance.m_main_mouse.left_down) {
+		pressedKeys.emplace_back(UINT32_MAX);
+	}
+	if (instance.m_main_mouse.right_down) {
+		pressedKeys.emplace_back(UINT32_MAX - 1);
+	}
 	result.buttons.SetPressedButtons(pressedKeys);
 	return result;
 }

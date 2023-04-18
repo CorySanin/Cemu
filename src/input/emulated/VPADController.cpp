@@ -204,7 +204,7 @@ void VPADController::update_touch(VPADStatus_t& status)
 
 		m_last_touch_position = glm::ivec2{status.tpData.x, status.tpData.y};
 	}
-	else if (const auto left_mouse = instance.get_left_down_mouse_info(&pad_view))
+	else if (const auto left_mouse = instance.get_left_down_mouse_info(&pad_view); left_mouse && pad_view)
 	{
 		glm::ivec2 image_pos, image_size;
 		LatteRenderTarget_getScreenImageArea(&image_pos.x, &image_pos.y, &image_size.x, &image_size.y, nullptr, nullptr, pad_view);
@@ -279,27 +279,23 @@ void VPADController::update_motion(VPADStatus_t& status)
 		return;
 	}
 
-	bool pad_view;
 	auto& input_manager = InputManager::instance();
-	if (const auto right_mouse = input_manager.get_right_down_mouse_info(&pad_view))
+	if (const auto right_mouse = input_manager.get_gyro_mouse_info())
 	{
 		const Vector2<float> mousePos(right_mouse->x, right_mouse->y);
 
-		int w, h;
-		if (pad_view)
-			gui_getPadWindowPhysSize(w, h);
-		else
-			gui_getWindowPhysSize(w, h);
+		//int w, h;
+		//gui_getWindowPhysSize(w, h);
 
-		float wx = mousePos.x / w;
-		float wy = mousePos.y / h;
+		//float wx = mousePos.x / w;
+		//float wy = mousePos.y / h;
 
 		static glm::vec3 m_lastGyroRotation{}, m_startGyroRotation{};
 		static bool m_startGyroRotationSet{};
 
-		float rotX = (wy * 2 - 1.0f) * 135.0f; // up/down best
-		float rotY = (wx * 2 - 1.0f) * -180.0f; // left/right
-		float rotZ = input_manager.m_mouse_wheel * 14.0f + m_lastGyroRotation.z;
+		float rotX = 0;//mousePos.y;//(wy * 2 - 1.0f) * 135.0f; // up/down best
+		float rotY = mousePos.x;//(wx * 2 - 1.0f) * -180.0f; // left/right
+		float rotZ = 0;
 		input_manager.m_mouse_wheel = 0.0f;
 
 		if (!m_startGyroRotationSet)
@@ -308,8 +304,8 @@ void VPADController::update_motion(VPADStatus_t& status)
 			m_startGyroRotationSet = true;
 		}
 
-		/*	debug_printf("\n\ngyro:\n<%.02f, %.02f, %.02f>\n\n",
-				rotX, rotY, rotZ);*/
+		debug_printf("\n\ngyro:\n<%.02f, %.02f, %.02f>\n\n",
+			rotX, rotY, rotZ);
 
 		Quaternion<float> q(rotX, rotY, rotZ);
 		auto rot = q.GetTransposedRotationMatrix();
@@ -327,8 +323,9 @@ void VPADController::update_motion(VPADStatus_t& status)
 			(float)status.dir.y.x, (float)status.dir.y.y, (float)status.dir.y.z,
 			(float)status.dir.z.x, (float)status.dir.z.y, (float)status.dir.z.z);*/
 
-		glm::vec3 rotation(rotX - m_lastGyroRotation.x, (rotY - m_lastGyroRotation.y) * 15.0f,
-		                   rotZ - m_lastGyroRotation.z);
+		// glm::vec3 rotation(rotX - m_lastGyroRotation.x, (rotY - m_lastGyroRotation.y) * 15.0f,
+		//                    rotZ - m_lastGyroRotation.z);
+		glm::vec3 rotation(rotX, rotY, rotZ);
 
 		rotation.x = std::min(1.0f, std::max(-1.0f, rotation.x / 360.0f));
 		rotation.y = std::min(1.0f, std::max(-1.0f, rotation.y / 360.0f));
@@ -338,6 +335,7 @@ void VPADController::update_motion(VPADStatus_t& status)
 			rotation.x, rotation.y, rotation.z);*/
 
 		constexpr float pi2 = (float)(M_PI * 2);
+		//gyroChange is the relevant bit
 		status.gyroChange = {rotation.x, rotation.y, rotation.z};
 		status.gyroOrientation = {rotation.x, rotation.y, rotation.z};
 		//status.angle = { rotation.x / pi2, rotation.y / pi2, rotation.z / pi2 };

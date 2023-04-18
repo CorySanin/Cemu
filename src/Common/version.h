@@ -1,6 +1,6 @@
 #ifndef EMULATOR_NAME
 
-#define EMULATOR_NAME					"Cemu"
+#define EMULATOR_NAME					"Xapfish"
 #define EMULATOR_VERSION_LEAD			2
 #define EMULATOR_VERSION_MAJOR			0
 

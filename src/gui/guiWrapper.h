@@ -81,6 +81,11 @@ struct WindowInfo
 	void set_keystate(uint32 keycode, bool state)
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
+#if BOOST_OS_LINUX
+		if(keycode >= 65 && keycode <= 90) {
+			keycode |= 32;
+		}
+#endif
 		m_keydown[keycode] = state;
 	}
 

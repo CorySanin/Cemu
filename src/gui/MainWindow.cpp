@@ -1371,6 +1371,15 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
 
+	if (instance.m_main_gyro.right_down && this->IsActive()) {
+		int windowWidth, windowHeight;
+        GetClientSize(&windowWidth, &windowHeight);
+		int centerX = windowWidth / 2;
+        int centerY = windowHeight / 2;
+		WarpPointer(centerX, centerY);
+		instance.m_main_gyro.position = {instance.m_main_gyro.position.x + event.GetX() - centerX, instance.m_main_gyro.position.y + event.GetY() - centerY};
+	}
+
 	if (!IsFullScreen())
 		return;
 
@@ -1388,6 +1397,7 @@ void MainWindow::OnMouseLeft(wxMouseEvent& event)
 	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
+	instance.m_main_gyro.right_down = true;
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_main_mouse.left_down_toggle = true;
 	
@@ -1443,7 +1453,11 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 
 	const auto code = event.GetKeyCode();
 	if (code == WXK_ESCAPE)
+	{
+		auto& instance = InputManager::instance();
+		instance.m_main_gyro.right_down = false;
 		SetFullScreen(false);
+	}
 	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
 		SetFullScreen(!IsFullScreen());
 	else if (code == WXK_F12)
@@ -1769,7 +1783,7 @@ class CemuAboutDialog : public wxDialog
 {
 public:
 	CemuAboutDialog(wxWindow* parent = NULL)
-		: wxDialog(NULL, wxID_ANY, _("About Cemu"), wxDefaultPosition, wxSize(500, 700))
+		: wxDialog(NULL, wxID_ANY, _("About Xapfish"), wxDefaultPosition, wxSize(500, 700))
 	{
 		Create(parent);
 	}
@@ -1801,7 +1815,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(fmt::runtime(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").ToStdString()), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = fmt::format(fmt::runtime(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nOriginal authors: {3}").ToStdString()), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
@@ -2236,7 +2250,7 @@ void MainWindow::RecreateMenu()
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, _("&Getting started"));
 	helpMenu->AppendSeparator();
-	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Cemu"));
+	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Xapfish"));
 
 	m_menuBar->Append(helpMenu, _("&Help"));
 
