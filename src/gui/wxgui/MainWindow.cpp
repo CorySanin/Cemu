@@ -1450,6 +1450,15 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
 
+	if (instance.m_main_gyro.right_down && this->IsActive()) {
+		int windowWidth, windowHeight;
+        GetClientSize(&windowWidth, &windowHeight);
+		int centerX = windowWidth / 2;
+        int centerY = windowHeight / 2;
+		WarpPointer(centerX, centerY);
+		instance.m_main_gyro.position = {instance.m_main_gyro.position.x + event.GetX() - centerX, instance.m_main_gyro.position.y + event.GetY() - centerY};
+	}
+
 	if (!IsFullScreen())
 		return;
 
@@ -1522,6 +1531,7 @@ void MainWindow::OnMouseLeft(wxMouseEvent& event)
 	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
+	instance.m_main_gyro.right_down = true;
 	if (!instance.m_main_gyro.capturing && !instance.m_main_gyro.pause) {
 		int windowWidth, windowHeight;
         GetClientSize(&windowWidth, &windowHeight);
@@ -1602,6 +1612,13 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
+	const auto code = event.GetKeyCode();
+	if (code == WXK_ESCAPE)
+	{
+		auto& instance = InputManager::instance();
+		instance.m_main_gyro.right_down = false;
+		SetFullScreen(false);
+	}
 	HotkeySettings::CaptureInput(event);
 }
 
@@ -2059,7 +2076,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = formatWxString(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nSource: xapfish.sanin.dev\nOriginal authors: {3}"), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = fmt::format(fmt::runtime(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nOriginal authors: {3}").ToStdString()), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://cemu.info", "https://cemu.info", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
