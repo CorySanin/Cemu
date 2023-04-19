@@ -1445,18 +1445,23 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	m_mouse_position = wxGetMousePosition();
 
 	auto& instance = InputManager::instance();
+	bool capturingCursor = instance.m_main_gyro.capturing && this->IsActive();
+	ShowCursor(!capturingCursor);
+
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
 
-	if (instance.m_main_gyro.right_down && this->IsActive()) {
+	if (capturingCursor) {
+		std::scoped_lock lock(instance.m_main_gyro.m_mutex);
 		int windowWidth, windowHeight;
         GetClientSize(&windowWidth, &windowHeight);
 		int centerX = windowWidth / 2;
         int centerY = windowHeight / 2;
 		WarpPointer(centerX, centerY);
-		instance.m_main_gyro.position = {instance.m_main_gyro.position.x + event.GetX() - centerX, instance.m_main_gyro.position.y + event.GetY() - centerY};
+		instance.m_main_gyro.position.x += (centerX - event.GetX()) * 2.0f;
+		instance.m_main_gyro.position.y = std::max(-68.0f, std::min(0.0f, (event.GetY() - centerY) / 30.0f + instance.m_main_gyro.position.y));
 	}
 
 	if (!IsFullScreen())
@@ -1531,7 +1536,6 @@ void MainWindow::OnMouseLeft(wxMouseEvent& event)
 	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	instance.m_main_gyro.right_down = true;
 	if (!instance.m_main_gyro.capturing && !instance.m_main_gyro.pause) {
 		int windowWidth, windowHeight;
         GetClientSize(&windowWidth, &windowHeight);
@@ -1616,7 +1620,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (code == WXK_ESCAPE)
 	{
 		auto& instance = InputManager::instance();
-		instance.m_main_gyro.right_down = false;
+		instance.m_main_gyro.capturing = false;
 		SetFullScreen(false);
 	}
 	HotkeySettings::CaptureInput(event);
