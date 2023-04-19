@@ -87,8 +87,8 @@ bool CemuApp::OnInit()
 #endif
 	user_data_path = config_path = cache_path = data_path = exePath.parent_path();
 #else
-	SetAppName("Cemu");
-	wxString appName=GetAppName();
+	SetAppName("Xapfish");
+	wxString appName=GetAppName().MakeLower();
 	#if BOOST_OS_LINUX
 	standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
 	auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)

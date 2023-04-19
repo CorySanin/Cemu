@@ -284,18 +284,12 @@ void VPADController::update_motion(VPADStatus_t& status)
 	{
 		const Vector2<float> mousePos(right_mouse->x, right_mouse->y);
 
-		//int w, h;
-		//gui_getWindowPhysSize(w, h);
-
-		//float wx = mousePos.x / w;
-		//float wy = mousePos.y / h;
-
 		static glm::vec3 m_lastGyroRotation{}, m_startGyroRotation{};
 		static bool m_startGyroRotationSet{};
 
-		float rotX = 0;//mousePos.y;//(wy * 2 - 1.0f) * 135.0f; // up/down best
-		float rotY = mousePos.x;//(wx * 2 - 1.0f) * -180.0f; // left/right
-		float rotZ = 0;
+		float rotX = mousePos.y;
+		float rotY = mousePos.x;
+		float rotZ = 0.0f;
 		input_manager.m_mouse_wheel = 0.0f;
 
 		if (!m_startGyroRotationSet)
@@ -304,8 +298,8 @@ void VPADController::update_motion(VPADStatus_t& status)
 			m_startGyroRotationSet = true;
 		}
 
-		debug_printf("\n\ngyro:\n<%.02f, %.02f, %.02f>\n\n",
-			rotX, rotY, rotZ);
+		// debug_printf("\n\ngyro:\n<%.02f, %.02f, %.02f>\n\n",
+		// 	rotX, rotY, rotZ);
 
 		Quaternion<float> q(rotX, rotY, rotZ);
 		auto rot = q.GetTransposedRotationMatrix();

@@ -932,13 +932,11 @@ std::optional<glm::ivec2> InputManager::get_right_down_mouse_info(bool* is_pad)
 	return {};
 }
 
-std::optional<glm::ivec2> InputManager::get_gyro_mouse_info() {
-	if (m_main_gyro.right_down) {
-		glm::ivec2 val{m_main_gyro.position.x, m_main_gyro.position.y};
-		m_main_gyro.position.x = m_main_gyro.position.y = 0;
-		return val;
-	}
-	return {};
+std::optional<glm::vec2> InputManager::get_gyro_mouse_info() {
+	std::shared_lock lock(m_main_gyro.m_mutex);
+	glm::vec2 val{m_main_gyro.position.x, m_main_gyro.position.y};
+	m_main_gyro.position.x = 0;
+	return val;
 }
 
 void InputManager::update_thread()
