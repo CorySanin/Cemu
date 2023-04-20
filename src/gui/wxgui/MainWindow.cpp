@@ -1448,20 +1448,24 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	bool capturingCursor = instance.m_main_gyro.capturing && this->IsActive();
 	ShowCursor(!capturingCursor);
 
+	auto& instance = InputManager::instance();
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
 
-	if (capturingCursor) {
+	if (instance.m_main_gyro.capturing && this->IsActive()) {
 		std::scoped_lock lock(instance.m_main_gyro.m_mutex);
 		int windowWidth, windowHeight;
         GetClientSize(&windowWidth, &windowHeight);
 		int centerX = windowWidth / 2;
         int centerY = windowHeight / 2;
 		WarpPointer(centerX, centerY);
-		instance.m_main_gyro.position.x += (centerX - event.GetX()) * 2.0f;
-		instance.m_main_gyro.position.y = std::max(-68.0f, std::min(0.0f, (event.GetY() - centerY) / 30.0f + instance.m_main_gyro.position.y));
+		instance.m_main_gyro.position = {instance.m_main_gyro.position.x + centerX - event.GetX(), instance.m_main_gyro.position.y + event.GetY() - centerY};
+	}
+	else {
+		ShowCursor(true);
+		instance.m_main_gyro.capturing = false;
 	}
 
 	if (!IsFullScreen())
