@@ -298,9 +298,6 @@ void VPADController::update_motion(VPADStatus_t& status)
 			m_startGyroRotationSet = true;
 		}
 
-		// debug_printf("\n\ngyro:\n<%.02f, %.02f, %.02f>\n\n",
-		// 	rotX, rotY, rotZ);
-
 		Quaternion<float> q(rotX, rotY, rotZ);
 		auto rot = q.GetTransposedRotationMatrix();
 

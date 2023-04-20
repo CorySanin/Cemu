@@ -86,9 +86,11 @@ public:
 	struct GyroMouseInfo
 	{
 		mutable std::shared_mutex m_mutex;
-		glm::vec2 position{0.0f, -30.0f};
+		glm::vec2 position{};
 		bool capturing = false;
 	} m_main_gyro{};
+	const float MIN_VERTICAL = -68.0f;
+	const float VERTICAL_DENOMINATOR = 50.0f;
 	glm::ivec2 get_mouse_position(bool pad_window) const;
 	std::optional<glm::ivec2> get_left_down_mouse_info(bool* is_pad);
 	std::optional<glm::ivec2> get_right_down_mouse_info(bool* is_pad);

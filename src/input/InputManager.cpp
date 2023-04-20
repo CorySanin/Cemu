@@ -934,8 +934,17 @@ std::optional<glm::ivec2> InputManager::get_right_down_mouse_info(bool* is_pad)
 
 std::optional<glm::vec2> InputManager::get_gyro_mouse_info() {
 	std::shared_lock lock(m_main_gyro.m_mutex);
-	glm::vec2 val{m_main_gyro.position.x, m_main_gyro.position.y};
-	m_main_gyro.position.x = 0;
+	glm::vec2 val{
+		m_main_gyro.position.x,
+		std::max(MIN_VERTICAL, std::min(0.0f, (m_main_gyro.position.y / VERTICAL_DENOMINATOR )))
+	};
+	if (val.y >= 0.0f) {
+		m_main_gyro.position.y = 0.0f;
+	}
+	else if (val.y <= MIN_VERTICAL) {
+		m_main_gyro.position.y = MIN_VERTICAL * VERTICAL_DENOMINATOR;
+	}
+	m_main_gyro.position.x = 0.0f;
 	return val;
 }
 
