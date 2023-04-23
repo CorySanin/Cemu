@@ -19,7 +19,7 @@
 #include "gui/debugger/DebuggerWindow2.h"
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
-#include "Cemu/DiscordPresence/DiscordPresence.h"
+#include "Cemu/DiscordPresence/XapfishDiscordPresence.h"
 #include "util/ScreenSaver/ScreenSaver.h"
 #include "gui/GeneralSettings2.h"
 #include "gui/GraphicPacksWindow2.h"
@@ -570,7 +570,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 	m_launched_game_name = CafeSystem::GetForegroundTitleName();
 	#ifdef ENABLE_DISCORD_RPC
 	if (m_discord)
-		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name);
+		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name, CafeSystem::GetForegroundTitleId());
 	#endif
 
 	if (GetConfig().disable_screensaver)
