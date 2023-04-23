@@ -88,6 +88,7 @@ public:
 		mutable std::shared_mutex m_mutex;
 		glm::vec2 position{};
 		bool capturing = false;
+		bool pause = false;
 	} m_main_gyro{};
 	const float MIN_VERTICAL = -68.0f;
 	const float VERTICAL_DENOMINATOR = 50.0f;

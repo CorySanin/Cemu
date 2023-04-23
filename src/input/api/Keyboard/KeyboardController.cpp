@@ -59,11 +59,13 @@ ControllerState KeyboardController::raw_state()
 	boost::container::small_vector<uint32, 16> pressedKeys;
 	auto& instance = InputManager::instance();
 	g_window_info.iter_keystates([&pressedKeys](const std::pair<const uint32, bool>& keyState) { if (keyState.second) pressedKeys.emplace_back(keyState.first); });
-	if (instance.m_main_mouse.left_down) {
-		pressedKeys.emplace_back(UINT32_MAX);
-	}
-	if (instance.m_main_mouse.right_down) {
-		pressedKeys.emplace_back(UINT32_MAX - 1);
+	if (!instance.m_main_gyro.pause) {
+		if (instance.m_main_mouse.left_down) {
+			pressedKeys.emplace_back(UINT32_MAX);
+		}
+		if (instance.m_main_mouse.right_down) {
+			pressedKeys.emplace_back(UINT32_MAX - 1);
+		}
 	}
 	result.buttons.SetPressedButtons(pressedKeys);
 	return result;

@@ -204,7 +204,7 @@ void VPADController::update_touch(VPADStatus_t& status)
 
 		m_last_touch_position = glm::ivec2{status.tpData.x, status.tpData.y};
 	}
-	else if (const auto left_mouse = instance.get_left_down_mouse_info(&pad_view); left_mouse && pad_view)
+	else if (const auto left_mouse = instance.get_left_down_mouse_info(&pad_view); left_mouse && (instance.m_main_gyro.pause || pad_view))
 	{
 		glm::ivec2 image_pos, image_size;
 		LatteRenderTarget_getScreenImageArea(&image_pos.x, &image_pos.y, &image_size.x, &image_size.y, nullptr, nullptr, pad_view);
