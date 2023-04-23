@@ -661,6 +661,40 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 		
 		break;
 	}
+	case InputAPI::Keyboard:
+	{
+		mapping =
+		{
+			{kButtonId_A, 101},
+			{kButtonId_B, 113},
+			{kButtonId_X, 32},
+			{kButtonId_Y, 121},
+
+			{kButtonId_L, 65365},
+			{kButtonId_R, 4294967294},
+			{kButtonId_ZL, 65505},
+			{kButtonId_ZR, 4294967295},
+
+			{kButtonId_Plus, 65293},
+			{kButtonId_Minus, 65506},
+
+			{kButtonId_Up, 65362},
+			{kButtonId_Down, 65364},
+			{kButtonId_Left, 65361},
+			{kButtonId_Right, 65363},
+
+			{kButtonId_StickL_Up, 119},
+			{kButtonId_StickL_Down, 115},
+			{kButtonId_StickL_Left, 97},
+			{kButtonId_StickL_Right, 100},
+
+			{kButtonId_StickR, 102},
+			{kButtonId_StickR_Up, 105},
+			{kButtonId_StickR_Down, 107},
+			{kButtonId_StickR_Left, 106},
+			{kButtonId_StickR_Right, 108},
+		};
+	}
 	}
 
 	bool mapping_updated = false;
