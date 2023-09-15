@@ -638,7 +638,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	const auto menuId = event.GetId();
 	if (menuId == MAINFRAME_MENU_ID_FILE_LOAD)
 	{
-		const auto wildcard = wxStringFormat2(
+		const auto wildcard = formatWxString(
 			"{}|*.wud;*.wux;*.wua;*.iso;*.rpx;*.elf"
 			"|{}|*.wud;*.wux;*.iso"
 			"|{}|*.wua"
@@ -648,7 +648,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
 			_("Wii U archive (*.wua)"),
 			_("Wii U executable (*.rpx, *.elf)"),
-			_("All files (*.*)")		
+			_("All files (*.*)")
 		);
 		
 		wxFileDialog openFileDialog(this, _("Open file to launch"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
@@ -706,7 +706,7 @@ void MainWindow::OnInstallUpdate(wxCommandEvent& event)
 			{
 				if (!fs::exists(dirPath.parent_path() / "code") || !fs::exists(dirPath.parent_path() / "content") || !fs::exists(dirPath.parent_path() / "meta"))
 				{
-					wxMessageBox(wxStringFormat2(_("The (parent) folder of the title you selected is missing at least one of the required subfolders (\"code\", \"content\" and \"meta\")\nMake sure that the files are complete."), dirPath.filename().string()));
+					wxMessageBox(formatWxString(_("The (parent) folder of the title you selected is missing at least one of the required subfolders (\"code\", \"content\" and \"meta\")\nMake sure that the files are complete."), dirPath.filename().string()));
 					continue;
 				}
 				else
@@ -1103,7 +1103,14 @@ void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
 	sint32 id = event.GetId();
 	if (id >= loggingIdBase && id < (MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 64))
 	{
-		cemuLog_setFlag(static_cast<LogType>(id - loggingIdBase), event.IsChecked());
+		bool isEnable = event.IsChecked();
+		LogType loggingType = static_cast<LogType>(id - loggingIdBase);
+		if (isEnable)
+			GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag(loggingType);
+		else
+			GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag(loggingType);
+		cemuLog_setActiveLoggingFlags(GetConfig().log_flag.GetValue());
+		g_config.Save();
 	}
 }
 
@@ -1868,7 +1875,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(fmt::runtime(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nOriginal authors: {3}").ToStdString()), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = formatWxString(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nOriginal authors: {3}"), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
@@ -2191,6 +2198,7 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
+
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
 	// cpu timer speed menu
@@ -2220,11 +2228,11 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("&Coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::ThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::ThreadSync));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("&Coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("&Coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("&Coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::nn_nfp), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::nn_nfp));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("&GX2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("&Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("&Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
@@ -2285,6 +2293,9 @@ void MainWindow::RecreateMenu()
 	//helpMenu->Append(MAINFRAME_MENU_ID_HELP_WEB, wxT("&Visit website"));
 	//helpMenu->AppendSeparator();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+	m_check_update_menu->Enable(false);
+#endif
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, _("&Getting started"));
 	helpMenu->AppendSeparator();
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Xapfish"));
@@ -2312,57 +2323,6 @@ void MainWindow::RecreateMenu()
 	// hide new menu in fullscreen
 	if (IsFullScreen())
 		SetMenuVisible(false);
-}
-
-void MainWindow::OnAfterCallShowErrorDialog()
-{
-	//wxMessageBox((const wxString&)dialogText, (const wxString&)dialogTitle, wxICON_INFORMATION);
-	//wxDialog* dialog = new wxDialog(NULL,wxID_ANY,(const wxString&)dialogTitle,wxDefaultPosition,wxSize(310,170));
-	//dialog->ShowModal();
-	//dialogState = 1;
-}
-
-bool MainWindow::EnableOnlineMode() const
-{
-	// TODO: not used anymore
-	// 
-	// if enabling online mode, check if all requirements are met
-	std::wstring additionalErrorInfo;
-	const sint32 onlineReqError = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo);
-
-	bool enableOnline = false;
-	if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_OTP_MISSING)
-	{
-		wxMessageBox(_("otp.bin could not be found"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_OTP_CORRUPTED)
-	{
-		wxMessageBox(_("otp.bin is corrupted or has invalid size"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_SEEPROM_MISSING)
-	{
-		wxMessageBox(_("seeprom.bin could not be found"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_SEEPROM_CORRUPTED)
-	{
-		wxMessageBox(_("seeprom.bin is corrupted or has invalid size"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_MISSING_FILE)
-	{
-		std::wstring errorMessage = fmt::format(L"Unable to load a necessary file:\n{}", additionalErrorInfo);
-		wxMessageBox(errorMessage.c_str(), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_OK)
-	{
-		enableOnline = true;
-	}
-	else
-	{
-		wxMessageBox(_("Unknown error occured"), _("Error"), wxICON_ERROR);
-	}
-
-	//config_get()->enableOnlineMode = enableOnline;
-	return enableOnline;
 }
 
 void MainWindow::RestoreSettingsAfterGameExited()

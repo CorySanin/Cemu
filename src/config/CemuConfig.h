@@ -6,6 +6,7 @@
 #include "Cafe/Account/Account.h"
 
 #include <wx/language.h>
+#include <wx/intl.h>
 
 struct GameEntry
 {
@@ -258,15 +259,15 @@ struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 		string_view name;
 		switch (v)
 		{
-		case CafeConsoleRegion::JPN: name = "Japan"; break;
-		case CafeConsoleRegion::USA: name = "USA"; break;
-		case CafeConsoleRegion::EUR: name = "Europe"; break;
-		case CafeConsoleRegion::AUS_DEPR: name = "Australia"; break;
-		case CafeConsoleRegion::CHN: name = "China"; break;
-		case CafeConsoleRegion::KOR: name = "Korea"; break;
-		case CafeConsoleRegion::TWN: name = "Taiwan"; break;
-		case CafeConsoleRegion::Auto: name = "Auto"; break;
-		default: name = "many"; break;
+		case CafeConsoleRegion::JPN: name = wxTRANSLATE("Japan"); break;
+		case CafeConsoleRegion::USA: name = wxTRANSLATE("USA"); break;
+		case CafeConsoleRegion::EUR: name = wxTRANSLATE("Europe"); break;
+		case CafeConsoleRegion::AUS_DEPR: name = wxTRANSLATE("Australia"); break;
+		case CafeConsoleRegion::CHN: name = wxTRANSLATE("China"); break;
+		case CafeConsoleRegion::KOR: name = wxTRANSLATE("Korea"); break;
+		case CafeConsoleRegion::TWN: name = wxTRANSLATE("Taiwan"); break;
+		case CafeConsoleRegion::Auto: name = wxTRANSLATE("Auto"); break;
+		default: name = wxTRANSLATE("many"); break;
 		
 		}
 		return formatter<string_view>::format(name, ctx);
@@ -352,7 +353,6 @@ struct CemuConfig
 	};
 
 	CemuConfig(const CemuConfig&) = delete;
-	//
 
 	// sets mlc path, updates permanent config value, saves config
 	void SetMLCPath(fs::path path, bool save = true);
@@ -364,10 +364,10 @@ struct CemuConfig
 	
 	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
 	ConfigValue<bool> use_discord_presence{ true };
-	ConfigValue<std::string> mlc_path {};
+	ConfigValue<std::string> mlc_path{};
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
-    	ConfigValue<bool> feral_gamemode{false};
+	ConfigValue<bool> feral_gamemode{false};
 	ConfigValue<std::string> proxy_server{};
 
 	// temporary workaround because feature crashes on macOS

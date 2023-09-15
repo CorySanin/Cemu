@@ -123,13 +123,13 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 
 			first_row->Add(new wxStaticText(box, wxID_ANY, _("Language"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-			wxString language_choices[] = { _("Default"), _("English") };
+			wxString language_choices[] = { _("Default"), "English" };
 			m_language = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(language_choices), language_choices);
 			m_language->SetSelection(0);
 			m_language->SetToolTip(_("Changes the interface language of Cemu\nAvailable languages are stored in the translation directory\nA restart will be required after changing the language"));
 			for (const auto& language : wxGetApp().GetLanguages())
 			{
-				m_language->Append(language->Description);
+				m_language->Append(language->DescriptionNative);
 			}
 
 			first_row->Add(m_language, 0, wxALL | wxEXPAND, 5);
@@ -166,6 +166,9 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
 			second_row->Add(m_auto_update, 0, botflag, 5);
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+			m_auto_update->Disable();
+#endif
 			second_row->AddSpacer(10);
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
@@ -932,7 +935,7 @@ void GeneralSettings2::StoreConfig()
 		const auto language = m_language->GetStringSelection();
 		for (const auto& lang : app->GetLanguages())
 		{
-			if (lang->Description == language)
+			if (lang->DescriptionNative == language)
 			{
 				GetConfig().language = lang->Language;
 				break;
@@ -1535,7 +1538,7 @@ void GeneralSettings2::ApplyConfig()
 	{
 		if (config.language == language->Language)
 		{
-			m_language->SetStringSelection(language->Description);
+			m_language->SetStringSelection(language->DescriptionNative);
 			break;
 		}
 	}
@@ -1998,44 +2001,60 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 	if (validator) // everything valid? shouldn't happen
 		return;
 	
-	std::wstringstream err;
-	err << L"The following error(s) have been found:" << std::endl;
+	wxString err;
+	err << _("The following error(s) have been found:") << '\n';
 	
 	if (validator.otp == OnlineValidator::FileState::Missing)
-		err << L"otp.bin missing in cemu root directory" << std::endl;
+		err << _("otp.bin missing in Cemu root directory") << '\n';
 	else if(validator.otp == OnlineValidator::FileState::Corrupted)
-		err << L"otp.bin is invalid" << std::endl;
+		err << _("otp.bin is invalid") << '\n';
 	
 	if (validator.seeprom == OnlineValidator::FileState::Missing)
-		err << L"seeprom.bin missing in cemu root directory" << std::endl;
+		err << _("seeprom.bin missing in Cemu root directory") << '\n';
 	else if(validator.seeprom == OnlineValidator::FileState::Corrupted)
-		err << L"seeprom.bin is invalid" << std::endl;
+		err << _("seeprom.bin is invalid") << '\n';
 
 	if(!validator.missing_files.empty())
 	{
-		err << L"Missing certificate and key files:" << std::endl;
+		err << _("Missing certificate and key files:") << '\n';
 
 		int counter = 0;
 		for (const auto& f : validator.missing_files)
 		{
-			err << f << std::endl;
+			err << f << '\n';
 
 			++counter;
 			if(counter > 10)
 			{
-				err << L"..." << std::endl;
+				err << "..." << '\n';
 				break;
 			}
 		}
 
-		err << std::endl;
+		err << '\n';
 	}
 
 	if (!validator.valid_account)
 	{
-		err << L"The currently selected account is not a valid or dumped online account:\n" << boost::nowide::widen(fmt::format("{}", validator.account_error));
+		err << _("The currently selected account is not a valid or dumped online account:") << '\n';
+		err << GetOnlineAccountErrorMessage(validator.account_error);
 	}
-		
-	
-	wxMessageBox(err.str(), _("Online Status"), wxOK | wxCENTRE | wxICON_INFORMATION);
+
+	wxMessageBox(err, _("Online Status"), wxOK | wxCENTRE | wxICON_INFORMATION);
+}
+
+wxString GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError error)
+{
+	switch (error) {
+		case OnlineAccountError::kNoAccountId:
+			return _("AccountId missing (The account is not connected to a NNID)");
+		case OnlineAccountError::kNoPasswordCached:
+			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)");
+		case OnlineAccountError::kPasswordCacheEmpty:
+			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)");
+		case OnlineAccountError::kNoPrincipalId:
+			return _("PrincipalId missing");
+		default:
+			return "no error";
+	}
 }

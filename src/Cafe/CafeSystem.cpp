@@ -165,7 +165,7 @@ void LoadMainExecutable()
 	{
 		// RPX
 		RPLLoader_AddDependency(_pathToExecutable.c_str());
-		applicationRPX = rpl_loadFromMem(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
+		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
 			wxMessageBox(_("Failed to run this title because the executable is damaged"));
@@ -484,6 +484,55 @@ namespace CafeSystem
 		#endif
 	}
 
+	#if BOOST_OS_WINDOWS
+	std::string GetWindowsNamedVersion(uint32& buildNumber)
+	{
+		char productName[256];
+		HKEY hKey;
+		DWORD dwType = REG_SZ;
+		DWORD dwSize = sizeof(productName);
+		if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+		{
+			if (RegQueryValueExA(hKey, "ProductName", NULL, &dwType, (LPBYTE)productName, &dwSize) != ERROR_SUCCESS)
+				strcpy(productName, "Windows");
+			RegCloseKey(hKey);
+		}
+		OSVERSIONINFO osvi;
+		ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+		osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+		GetVersionEx(&osvi);
+		buildNumber = osvi.dwBuildNumber;
+		return std::string(productName);
+	}
+	#endif
+
+	void logPlatformInfo()
+	{
+		std::string buffer;
+		const char* platform = NULL;
+		#if BOOST_OS_WINDOWS
+		uint32 buildNumber;
+		std::string windowsVersionName = GetWindowsNamedVersion(buildNumber);
+		buffer = fmt::format("{} (Build {})", windowsVersionName, buildNumber);
+		platform = buffer.c_str();
+		#elif BOOST_OS_LINUX
+		if (getenv ("APPIMAGE"))
+			platform = "Linux (AppImage)";
+		else if (getenv ("SNAP"))
+			platform = "Linux (Snap)";
+		else if (platform = getenv ("container"))
+		{
+			if (strcmp (platform, "flatpak") == 0)
+				platform = "Linux (Flatpak)";
+		}
+		else
+			platform = "Linux";
+		#elif BOOST_OS_MACOS
+		platform = "MacOS";
+		#endif
+		cemuLog_log(LogType::Force, "Platform: {}", platform);
+	}
+
 	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
@@ -501,6 +550,7 @@ namespace CafeSystem
 		_CheckForWine();
 		// CPU and RAM info
 		logCPUAndMemoryInfo();
+		logPlatformInfo();
 		cemuLog_log(LogType::Force, "Used CPU extensions: {}", g_CPUFeatures.GetCommaSeparatedExtensionList());
 		// misc systems
 		rplSymbolStorage_init();

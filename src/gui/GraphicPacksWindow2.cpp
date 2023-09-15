@@ -445,7 +445,7 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 				m_graphic_pack_name->SetLabel(wxHelper::FromUtf8(m_gp_name));
 
 				if (gp->GetDescription().empty())
-					m_gp_description = _("This graphic pack has no description");
+					m_gp_description = _("This graphic pack has no description").utf8_string();
 				else
 					m_gp_description = gp->GetDescription();
 
@@ -570,8 +570,8 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 	wxASSERT(obj);
 	const auto string_data = dynamic_cast<wxStringClientData*>(obj->GetClientObject());
 	wxASSERT(string_data);
-	const auto preset = wxHelper::MakeUTF8(obj->GetStringSelection());
-	if(m_shown_graphic_pack->SetActivePreset(wxHelper::MakeUTF8(string_data->GetData()), preset))
+	const auto preset = obj->GetStringSelection().utf8_string();
+	if(m_shown_graphic_pack->SetActivePreset(string_data->GetData().utf8_string(), preset))
 	{
 		wxWindowUpdateLocker lock(this);
 		ClearPresets();
@@ -609,7 +609,7 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 
 			// check if enabled graphic packs are lost:
 			const auto& new_packs = GraphicPack2::GetGraphicPacks();
-			std::stringstream str;
+			std::stringstream lost_packs;
 			for(const auto& p : old_packs)
 			{
 				if (!p->IsEnabled())
@@ -622,15 +622,16 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 				
 				if(it == new_packs.cend())
 				{
-					str << p->GetPath() << std::endl;
+					lost_packs << p->GetPath() << "\n";
 				}
 			}
 
-			const auto packs = str.str();
-			if(!packs.empty())
+			const auto lost_packs_str = lost_packs.str();
+			if (!lost_packs_str.empty())
 			{
-				wxMessageBox(fmt::format("{}\n \n{} \n{}", _("This update removed or renamed the following graphic packs:").ToStdString(), packs, _("You may need to set them up again.").ToStdString()),
-					_("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
+				wxString message = _("This update removed or renamed the following graphic packs:");
+				message << "\n \n" << lost_packs_str << " \n" << _("You may need to set them up again.");
+				wxMessageBox(message, _("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
 			}
 		}
 	}
@@ -668,7 +669,7 @@ void GraphicPacksWindow2::SashPositionChanged(wxEvent& event)
 
 void GraphicPacksWindow2::OnFilterUpdate(wxEvent& event)
 {
-	m_filter = wxHelper::MakeUTF8(m_filter_text->GetValue());
+	m_filter = m_filter_text->GetValue().utf8_string();
 	FillGraphicPackList();
 	event.Skip();
 }
