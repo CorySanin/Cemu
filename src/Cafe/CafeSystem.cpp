@@ -251,14 +251,7 @@ void InfoLog_PrintActiveSettings()
 		if(!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
-	cemuLog_log(LogType::Force, "Console language: {}", config.console_language);
-}
-
-void PPCCore_setupSPR(PPCInterpreter_t* hCPU, uint32 coreIndex)
-{
-	hCPU->sprExtended.PVR = 0x70010001;
-	hCPU->spr.UPIR = coreIndex;
-	hCPU->sprExtended.msr |= MSR_FP; // enable floating point
+	cemuLog_log(LogType::Force, "Console language: {}", stdx::to_underlying(config.console_language.GetValue()));
 }
 
 struct SharedDataEntry

@@ -1286,7 +1286,11 @@ bool DownloadManager::asyncPackageInstallRecursiveExtractFiles(Package* package,
 		setPackageError(package, "Internal error");
 		return false;
 	}
-
+	if (fstVolume->HasLinkFlag(dirItr.GetDirHandle()))
+	{
+		cemu_assert_suspicious();
+		return true;
+	}
 	FSTFileHandle itr;
 	while (fstVolume->Next(dirItr, itr))
 	{
@@ -1541,7 +1545,7 @@ void DownloadManager::runManager()
 	auto cacheFilePath = ActiveSettings::GetMlcPath("usr/save/system/nim/nup/");
 	fs::create_directories(cacheFilePath);
 	cacheFilePath /= "cemu_cache.dat";
-	s_nupFileCache = FileCache::Open(cacheFilePath.generic_wstring(), true);
+	s_nupFileCache = FileCache::Open(cacheFilePath, true);
 	// launch worker thread
 	std::thread t(&DownloadManager::threadFunc, this);
 	t.detach();

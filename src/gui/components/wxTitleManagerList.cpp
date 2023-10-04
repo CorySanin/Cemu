@@ -274,6 +274,9 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 					break; // prefer the users selection
 			}
 		}
+	}
+	for (const auto& data : m_data)
+	{
 		if (hasUpdateTitleId && data->entry.title_id == updateTitleId)
 		{
 			if (!titleInfo_update.IsValid())
@@ -352,7 +355,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 		boost::replace_all(shortName, ":", "");
 	}
 	// for the default output directory we use the first game path configured by the user
-	std::wstring defaultDir = L"";
+	std::string defaultDir = "";
 	if (!GetConfig().game_paths.empty())
 		defaultDir = GetConfig().game_paths.front();
 	// get the short name, which we will use as a suggested default file name
@@ -941,6 +944,8 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 			return _("Folder");
 		case wxTitleManagerList::EntryFormat::WUD:
 			return _("WUD");
+		case wxTitleManagerList::EntryFormat::NUS:
+			return _("NUS");
 		case wxTitleManagerList::EntryFormat::WUA:
 			return _("WUA");
 		}
@@ -948,9 +953,7 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	}
 	case ColumnLocation:
 	{
-		const auto relative_mlc_path = 
-			entry.path.lexically_relative(ActiveSettings::GetMlcPath()).string();
-
+		const auto relative_mlc_path = _pathToUtf8(entry.path.lexically_relative(ActiveSettings::GetMlcPath()));
 		if (relative_mlc_path.starts_with("usr") || relative_mlc_path.starts_with("sys"))
 			return _("MLC");
 		else
@@ -1010,15 +1013,18 @@ void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt
 	wxTitleManagerList::EntryFormat entryFormat;
 	switch (titleInfo.GetFormat())
 	{
-	case TitleInfo::TitleDataFormat::HOST_FS:
-	default:
-		entryFormat = EntryFormat::Folder;
-		break;
 	case TitleInfo::TitleDataFormat::WUD:
 		entryFormat = EntryFormat::WUD;
 		break;
+	case TitleInfo::TitleDataFormat::NUS:
+		entryFormat = EntryFormat::NUS;
+		break;
 	case TitleInfo::TitleDataFormat::WIIU_ARCHIVE:
 		entryFormat = EntryFormat::WUA;
+		break;
+	case TitleInfo::TitleDataFormat::HOST_FS:
+	default:
+		entryFormat = EntryFormat::Folder;
 		break;
 	}
 

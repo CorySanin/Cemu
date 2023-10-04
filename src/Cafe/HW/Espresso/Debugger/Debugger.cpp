@@ -210,7 +210,8 @@ void debugger_handleSingleStepException(uint64 dr6)
 	}
 	if (catchBP)
 	{
-		debugger_createCodeBreakpoint(ppcInterpreterCurrentInstance->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
+		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+		debugger_createCodeBreakpoint(hCPU->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
 	}
 }
 
@@ -511,11 +512,11 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 	{
 		if (bp->bpType == DEBUGGER_BP_T_LOGGING && bp->enabled)
 		{
-			std::wstring logName = !bp->comment.empty() ? L"Breakpoint '"+bp->comment+L"'" : fmt::format(L"Breakpoint at 0x{:08X} (no comment)", bp->address);
-			std::wstring logContext = fmt::format(L"Thread: {:08x} LR: 0x{:08x}", coreinitThread_getCurrentThreadMPTRDepr(hCPU), hCPU->spr.LR, cemuLog_advancedPPCLoggingEnabled() ? L" Stack Trace:" : L"");
-			cemuLog_log(LogType::Force, L"[Debugger] {} was executed! {}", logName, logContext);
+			std::string logName = !bp->comment.empty() ? "Breakpoint '"+boost::nowide::narrow(bp->comment)+"'" : fmt::format("Breakpoint at 0x{:08X} (no comment)", bp->address);
+			std::string logContext = fmt::format("Thread: {:08x} LR: 0x{:08x}", MEMPTR<OSThread_t>(coreinit::OSGetCurrentThread()).GetMPTR(), hCPU->spr.LR, cemuLog_advancedPPCLoggingEnabled() ? " Stack Trace:" : "");
+			cemuLog_log(LogType::Force, "[Debugger] {} was executed! {}", logName, logContext);
 			if (cemuLog_advancedPPCLoggingEnabled())
-				DebugLogStackTrace(coreinitThread_getCurrentThreadDepr(hCPU), hCPU->gpr[1]);
+				DebugLogStackTrace(coreinit::OSGetCurrentThread(), hCPU->gpr[1]);
 			break;
 		}
 		bp = bp->next;
@@ -534,7 +535,7 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 
 	// handle breakpoints
 	debuggerState.debugSession.isTrapped = true;
-	debuggerState.debugSession.debuggedThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(hCPU);
+	debuggerState.debugSession.debuggedThreadMPTR = MEMPTR<OSThread_t>(coreinit::OSGetCurrentThread()).GetMPTR();
 	debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
 	debuggerState.debugSession.hCPU = hCPU;
 	debugger_createPPCStateSnapshot(hCPU);

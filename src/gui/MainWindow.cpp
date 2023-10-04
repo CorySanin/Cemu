@@ -14,8 +14,6 @@
 #include "gui/canvas/VulkanCanvas.h"
 #include "Cafe/OS/libs/nn_nfp/nn_nfp.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
-#include "Cafe/IOSU/legacy/iosu_crypto.h"
-#include "Cafe/GameProfile/GameProfile.h"
 #include "gui/debugger/DebuggerWindow2.h"
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
@@ -23,10 +21,8 @@
 #include "util/ScreenSaver/ScreenSaver.h"
 #include "gui/GeneralSettings2.h"
 #include "gui/GraphicPacksWindow2.h"
-#include "gui/GameProfileWindow.h"
 #include "gui/CemuApp.h"
 #include "gui/CemuUpdateWindow.h"
-#include "gui/helpers/wxCustomData.h"
 #include "gui/LoggingWindow.h"
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -36,9 +32,7 @@
 #include "gui/TitleManager.h"
 
 #include "Cafe/CafeSystem.h"
-#include "Cafe/TitleList/GameInfo.h"
 
-#include <boost/algorithm/string.hpp>
 #include "util/helpers/SystemException.h"
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "gui/GettingStartedDialog.h"
@@ -150,8 +144,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_DUMP_FST,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS,
 	// help
-	MAINFRAME_MENU_ID_HELP_WEB = 21700,
-	MAINFRAME_MENU_ID_HELP_ABOUT,
+	MAINFRAME_MENU_ID_HELP_ABOUT = 21700,
 	MAINFRAME_MENU_ID_HELP_UPDATE,
 	MAINFRAME_MENU_ID_HELP_GETTING_STARTED,
 
@@ -225,7 +218,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, MainWindow::OnDebugViewPPCDe
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, MainWindow::OnDebugViewAudioDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugViewTextureRelations)
 // help menu
-EVT_MENU(MAINFRAME_MENU_ID_HELP_WEB, MainWindow::OnHelpVistWebpage)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_UPDATE, MainWindow::OnHelpUpdate)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, MainWindow::OnHelpGettingStarted)
@@ -248,7 +240,7 @@ public:
 	bool OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames) override
 	{
 		if(!m_window->IsGameLaunched() && filenames.GetCount() == 1)
-			return m_window->FileLoad(filenames[0].wc_str(), wxLaunchGameEvent::INITIATED_BY::DRAG_AND_DROP);
+			return m_window->FileLoad(_utf8ToPath(filenames[0].utf8_string()), wxLaunchGameEvent::INITIATED_BY::DRAG_AND_DROP);
 		
 		return false;
 	}
@@ -265,11 +257,11 @@ public:
 	{
 		if (!m_window->IsGameLaunched() || filenames.GetCount() != 1)
 			return false;
-		
 		uint32 nfcError;
-		if (nnNfp_touchNfcTagFromFile(filenames[0].wc_str(), &nfcError))
+		std::string path = filenames[0].utf8_string();
+		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError))
 		{
-			GetConfig().AddRecentNfcFile((wchar_t*)filenames[0].wc_str());
+			GetConfig().AddRecentNfcFile(path);
 			m_window->UpdateNFCMenu();
 			return true;
 		}
@@ -493,9 +485,8 @@ bool MainWindow::InstallUpdate(const fs::path& metaFilePath)
 	return false;
 }
 
-bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY initiatedBy)
+bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATED_BY initiatedBy)
 {
-	const fs::path launchPath = fs::path(fileName);
 	TitleInfo launchTitle{ launchPath };
 	if (launchTitle.IsValid())
 	{
@@ -518,22 +509,22 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		else if (r == CafeSystem::STATUS_CODE::UNABLE_TO_MOUNT)
 		{
 			wxString t = _("Unable to mount title.\nMake sure the configured game paths are still valid and refresh the game list.\n\nFile which failed to load:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 		else if (r != CafeSystem::STATUS_CODE::SUCCESS)
 		{
 			wxString t = _("Failed to launch game.");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 	}
 	else //if (launchTitle.GetFormat() == TitleInfo::TitleDataFormat::INVALID_STRUCTURE )
 	{
-		// title is invalid, if its an RPX/ELF we can launch it directly
-		// otherwise its an error
+		// title is invalid, if it's an RPX/ELF we can launch it directly
+		// otherwise it's an error
 		CafeTitleFileType fileType = DetermineCafeSystemFileType(launchPath);
 		if (fileType == CafeTitleFileType::RPX || fileType == CafeTitleFileType::ELF)
 		{
@@ -542,7 +533,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 			{
 				cemu_assert_debug(false); // todo
 				wxString t = _("Failed to launch executable. Path: ");
-				t.append(fileName);
+				t.append(_pathToUtf8(launchPath));
 				wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 				return false;
 			}
@@ -550,7 +541,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		else if (initiatedBy == wxLaunchGameEvent::INITIATED_BY::GAME_LIST)
 		{
 			wxString t = _("Unable to launch title.\nMake sure the configured game paths are still valid and refresh the game list.\n\nPath which failed to load:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
@@ -558,23 +549,33 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 			initiatedBy == wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE)
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
+			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_DISC_KEY)
+			{
+				t.append("\n\n");
+				t.append(_("Could not decrypt title. Make sure that keys.txt contains the correct disc key for this title."));
+			}
+			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_TITLE_TIK)
+			{
+				t.append("\n\n");
+				t.append(_("Could not decrypt title because title.tik is missing."));
+			}
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 		else
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 	}
 
 	if(launchTitle.IsValid())
-		GetConfig().AddRecentlyLaunchedFile(launchTitle.GetPath().generic_wstring());
+		GetConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchTitle.GetPath()));
 	else
-		GetConfig().AddRecentlyLaunchedFile(fileName);
+		GetConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchPath));
 
 	wxWindowUpdateLocker lock(this);
 
@@ -630,7 +631,7 @@ void MainWindow::OnLaunchFromFile(wxLaunchGameEvent& event)
 {
 	if (event.GetPath().empty())
 		return;
-	FileLoad(event.GetPath().generic_wstring(), event.GetInitiatedBy());
+	FileLoad(event.GetPath(), event.GetInitiatedBy());
 }
 
 void MainWindow::OnFileMenu(wxCommandEvent& event)
@@ -639,13 +640,15 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	if (menuId == MAINFRAME_MENU_ID_FILE_LOAD)
 	{
 		const auto wildcard = formatWxString(
-			"{}|*.wud;*.wux;*.wua;*.iso;*.rpx;*.elf"
+			"{}|*.wud;*.wux;*.wua;*.iso;*.rpx;*.elf;title.tmd"
 			"|{}|*.wud;*.wux;*.iso"
+			"|{}|title.tmd"
 			"|{}|*.wua"
 			"|{}|*.rpx;*.elf"
 			"|{}|*",
 			_("All Wii U files (*.wud, *.wux, *.wua, *.iso, *.rpx, *.elf)"),
 			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
+			_("Wii U NUS content"),
 			_("Wii U archive (*.wua)"),
 			_("Wii U executable (*.rpx, *.elf)"),
 			_("All files (*.*)")
@@ -657,7 +660,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			return;
 
 		const wxString wxStrFilePath = openFileDialog.GetPath();	
-		FileLoad(wxStrFilePath.wc_str(), wxLaunchGameEvent::INITIATED_BY::MENU);
+		FileLoad(_utf8ToPath(wxStrFilePath.utf8_string()), wxLaunchGameEvent::INITIATED_BY::MENU);
 	}
 	else if (menuId >= MAINFRAME_MENU_ID_FILE_RECENT_0 && menuId <= MAINFRAME_MENU_ID_FILE_RECENT_LAST)
 	{
@@ -665,7 +668,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 		const size_t index = menuId - MAINFRAME_MENU_ID_FILE_RECENT_0;
 		if (index < config.recent_launch_files.size())
 		{
-			const auto& path = config.recent_launch_files[index];
+			fs::path path = _utf8ToPath(config.recent_launch_files[index]);
 			if (!path.empty())
 				FileLoad(path, wxLaunchGameEvent::INITIATED_BY::MENU);
 		}
@@ -737,7 +740,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			return;
 		wxString wxStrFilePath = openFileDialog.GetPath();
 		uint32 nfcError;
-		if (nnNfp_touchNfcTagFromFile(wxStrFilePath.wc_str(), &nfcError) == false)
+		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
 		{
 			if (nfcError == NFC_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"));
@@ -746,7 +749,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 		}
 		else
 		{
-			GetConfig().AddRecentNfcFile((wchar_t*)wxStrFilePath.wc_str());
+			GetConfig().AddRecentNfcFile(wxStrFilePath.utf8_string());
 			UpdateNFCMenu();
 		}
 	}
@@ -760,7 +763,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			if (!path.empty())
 			{
 				uint32 nfcError = 0;
-				if (nnNfp_touchNfcTagFromFile(path.c_str(), &nfcError) == false)
+				if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError) == false)
 				{
 					if (nfcError == NFC_ERROR_NO_ACCESS)
 						wxMessageBox(_("Cannot open file"));
@@ -1785,7 +1788,7 @@ void MainWindow::UpdateNFCMenu()
 		if (recentFileIndex == 0)
 			m_nfcMenuSeparator0 = m_nfcMenu->AppendSeparator();
 
-		m_nfcMenu->Append(MAINFRAME_MENU_ID_NFC_RECENT_0 + i, fmt::format(L"{}. {}", recentFileIndex, entry ));
+		m_nfcMenu->Append(MAINFRAME_MENU_ID_NFC_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, entry)));
 
 		recentFileIndex++;
 		if (recentFileIndex >= 12)
@@ -1834,8 +1837,6 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 	}
 		
 }
-
-void MainWindow::OnHelpVistWebpage(wxCommandEvent& event) {}
 
 #define BUILD_DATE __DATE__ " " __TIME__
 
@@ -1899,7 +1900,7 @@ public:
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
 			lineSizer->Add(new wxStaticText(parent, -1, "zLib ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "http://www.zlib.net", "http://www.zlib.net"), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.zlib.net", "https://www.zlib.net"), 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
 			sizer->Add(lineSizer);
 		}
@@ -2115,17 +2116,12 @@ void MainWindow::RecreateMenu()
 		m_fileMenuSeparator1 = nullptr;
 		for (size_t i = 0; i < config.recent_launch_files.size(); i++)
 		{
-			const auto& entry = config.recent_launch_files[i];
-			if (entry.empty())
+			const std::string& pathStr = config.recent_launch_files[i];
+			if (pathStr.empty())
 				continue;
-
-			if (!fs::exists(entry))
-				continue;
-
 			if (recentFileIndex == 0)
 				m_fileMenuSeparator0 = m_fileMenu->AppendSeparator();
-
-			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, fmt::format(L"{}. {}", recentFileIndex, entry));
+			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, pathStr)));
 			recentFileIndex++;
 
 			if (recentFileIndex >= 8)
@@ -2290,8 +2286,6 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(debugMenu, _("&Debug"));
 	// help menu
 	wxMenu* helpMenu = new wxMenu();
-	//helpMenu->Append(MAINFRAME_MENU_ID_HELP_WEB, wxT("&Visit website"));
-	//helpMenu->AppendSeparator();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
 	m_check_update_menu->Enable(false);
