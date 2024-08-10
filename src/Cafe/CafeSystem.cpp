@@ -35,6 +35,7 @@
 #include "Cafe/IOSU/legacy/iosu_boss.h"
 #include "Cafe/IOSU/legacy/iosu_nim.h"
 #include "Cafe/IOSU/PDM/iosu_pdm.h"
+#include "Cafe/IOSU/ccr_nfc/iosu_ccr_nfc.h"
 
 // IOSU initializer functions
 #include "Cafe/IOSU/kernel/iosu_kernel.h"
@@ -51,6 +52,8 @@
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/OS/libs/gx2/GX2_Misc.h"
 #include "Cafe/OS/libs/mic/mic.h"
+#include "Cafe/OS/libs/nfc/nfc.h"
+#include "Cafe/OS/libs/ntag/ntag.h"
 #include "Cafe/OS/libs/nn_aoc/nn_aoc.h"
 #include "Cafe/OS/libs/nn_pdm/nn_pdm.h"
 #include "Cafe/OS/libs/nn_cmpt/nn_cmpt.h"
@@ -526,6 +529,16 @@ namespace CafeSystem
 		cemuLog_log(LogType::Force, "Platform: {}", platform);
 	}
 
+	static std::vector<IOSUModule*> s_iosuModules =
+	{
+		// entries in this list are ordered by initialization order. Shutdown in reverse order
+		iosu::kernel::GetModule(),
+		iosu::acp::GetModule(),
+		iosu::fpd::GetModule(),
+		iosu::pdm::GetModule(),
+		iosu::ccr_nfc::GetModule(),
+	};
+
 	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
@@ -550,20 +563,20 @@ namespace CafeSystem
 		// allocate memory for all SysAllocators
 		// must happen before COS module init, but also before iosu::kernel::Initialize()
 		SysAllocatorContainer::GetInstance().Initialize();
-		// init IOSU
+		// init IOSU modules
+		for(auto& module : s_iosuModules)
+			module->SystemLaunch();
+		// init IOSU (deprecated manual init)
 		iosuCrypto_init();
-		iosu::kernel::Initialize();
 		iosu::fsa::Initialize();
 		iosuIoctl_init();
 		iosuAct_init_depr();
 		iosu::act::Initialize();
-		iosu::fpd::Initialize();
 		iosu::iosuMcp_init();
 		iosu::mcp::Init();
 		iosu::iosuAcp_init();
 		iosu::boss_init();
 		iosu::nim::Initialize();
-		iosu::pdm::Initialize();
 		iosu::odm::Initialize();
 		// init Cafe OS
 		avm::Initialize();
@@ -578,6 +591,8 @@ namespace CafeSystem
 		H264::Initialize();
 		snd_core::Initialize();
 		mic::Initialize();
+		nfc::Initialize();
+		ntag::Initialize();
 		// init hardware register interfaces
 		HW_SI::Initialize();
 	}
@@ -593,11 +608,14 @@ namespace CafeSystem
         // if a title is running, shut it down
         if (sSystemRunning)
             ShutdownTitle();
-        // shutdown persistent subsystems
+        // shutdown persistent subsystems (deprecated manual shutdown)
 		iosu::odm::Shutdown();
 		iosu::act::Stop();
         iosu::mcp::Shutdown();
         iosu::fsa::Shutdown();
+		// shutdown IOSU modules
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->SystemExit();
         s_initialized = false;
     }
 
@@ -737,7 +755,6 @@ namespace CafeSystem
 			}
 		}
 		LoadMainExecutable();
-		gameProfile_load();
 		return STATUS_CODE::SUCCESS;
 	}
 
@@ -766,6 +783,7 @@ namespace CafeSystem
 		STATUS_CODE r = LoadAndMountForegroundTitle(titleId);
 		if (r != STATUS_CODE::SUCCESS)
 			return r;
+		gameProfile_load();
 		// setup memory space and PPC recompiler
         SetupMemorySpace();
         PPCRecompiler_init();
@@ -821,14 +839,14 @@ namespace CafeSystem
 
 	void _LaunchTitleThread()
 	{
-		// init
+		for(auto& module : s_iosuModules)
+			module->TitleStart();
 		cemu_initForGame();
 		// enter scheduler
 		if (ActiveSettings::GetCPUMode() == CPUMode::MulticoreRecompiler)
 			coreinit::OSSchedulerBegin(3);
 		else
 			coreinit::OSSchedulerBegin(1);
-		iosu::pdm::StartTrackingTime(GetForegroundTitleId());
 	}
 
 	void LaunchForegroundTitle()
@@ -903,6 +921,27 @@ namespace CafeSystem
 		return sGameInfo_ForegroundTitle.GetBase().GetArgStr();
 	}
 
+	CosCapabilityBits GetForegroundTitleCosCapabilities(CosCapabilityGroup group)
+	{
+		if (sLaunchModeIsStandalone)
+			return CosCapabilityBits::All;
+		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
+		if (update.IsValid())
+		{
+			ParsedCosXml* cosXml = update.GetCosInfo();
+			if (cosXml)
+				return cosXml->GetCapabilityBits(group);
+		}
+		auto& base = sGameInfo_ForegroundTitle.GetBase();
+		if(base.IsValid())
+		{
+			ParsedCosXml* cosXml = base.GetCosInfo();
+			if (cosXml)
+				return cosXml->GetCapabilityBits(group);
+		}
+		return CosCapabilityBits::All;
+	}
+
 	// when switching titles custom parameters can be passed, returns true if override args are used
 	bool GetOverrideArgStr(std::vector<std::string>& args)
 	{
@@ -956,8 +995,8 @@ namespace CafeSystem
         nn::save::ResetToDefaultState();
         coreinit::__OSDeleteAllActivePPCThreads();
         RPLLoader_ResetState();
-        // stop time tracking
-		iosu::pdm::Stop();
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->TitleStop();
         // reset Cemu subsystems
         PPCRecompiler_Shutdown();
         GraphicPack2::Reset();
