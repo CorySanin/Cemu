@@ -1454,24 +1454,6 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
-	if (!tabDown){
-		if (instance.m_main_gyro.capturing && this->IsActive()) {
-			std::scoped_lock lock(instance.m_main_gyro.m_mutex);
-			int windowWidth, windowHeight;
-			GetClientSize(&windowWidth, &windowHeight);
-			int centerX = windowWidth / 2;
-			int centerY = windowHeight / 2;
-			WarpPointer(centerX, centerY);
-			if (!instance.m_main_gyro.pause) {
-				instance.m_main_gyro.position = {instance.m_main_gyro.position.x + centerX - event.GetX(), instance.m_main_gyro.position.y + event.GetY() - centerY};
-			}
-		}
-		else {
-			ShowCursor(true);
-			instance.m_main_gyro.capturing = false;
-		}
-	}
-	instance.m_main_gyro.pause = tabDown;
 
 	if (!IsFullScreen())
 		return;
