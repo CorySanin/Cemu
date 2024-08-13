@@ -615,6 +615,10 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	CafeSystem::LaunchForegroundTitle();
 	RecreateMenu();
 	UpdateChildWindowTitleRunningState();
+	if(!m_cursor_loop_activated) {
+		m_cursor_loop_activated = true;
+		TrackCursorLoop();
+	}
 
 	return true;
 }
@@ -1366,27 +1370,8 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	auto& instance = InputManager::instance();
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
 	auto physPos = ToPhys(event.GetPosition());
-	bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
-	if (!tabDown){
-		if (instance.m_main_gyro.capturing && this->IsActive()) {
-			std::scoped_lock lock(instance.m_main_gyro.m_mutex);
-			int windowWidth, windowHeight;
-			GetClientSize(&windowWidth, &windowHeight);
-			int centerX = windowWidth / 2;
-			int centerY = windowHeight / 2;
-			WarpPointer(centerX, centerY);
-			if (!instance.m_main_gyro.pause) {
-				instance.m_main_gyro.position = {instance.m_main_gyro.position.x + centerX - event.GetX(), instance.m_main_gyro.position.y + event.GetY() - centerY};
-			}
-		}
-		else {
-			ShowCursor(true);
-			instance.m_main_gyro.capturing = false;
-		}
-	}
-	instance.m_main_gyro.pause = tabDown;
 
 	if (!IsFullScreen())
 		return;
@@ -1395,6 +1380,47 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	// if mouse goes to upper screen then show our menu in fullscreen mode
 	if (config.fullscreen_menubar)
 		SetMenuVisible(event.GetPosition().y < 50);
+}
+
+void MainWindow::TrackCursorLoop()
+{
+	std::thread cursor_movement_thread = std::thread([this]() {
+		while (m_cursor_loop_activated)
+		{
+			bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
+			auto& instance = InputManager::instance();
+
+			if (!tabDown)
+			{
+				if (instance.m_main_gyro.capturing && this->IsActive())
+				{
+					if (this->IsActive())
+					{
+						std::scoped_lock lock(instance.m_main_gyro.m_mutex);
+						int windowWidth, windowHeight;
+						GetClientSize(&windowWidth, &windowHeight);
+						int centerX = windowWidth / 2;
+						int centerY = windowHeight / 2;
+						wxPoint clientPos(centerX, centerY);
+						wxPoint screenPos = wxGetMousePosition();
+						wxPoint centerPos = this->ClientToScreen(clientPos);
+						WarpPointer(centerX, centerY);
+						if (!instance.m_main_gyro.pause)
+						{
+							instance.m_main_gyro.position = {instance.m_main_gyro.position.x + centerPos.x - screenPos.x, instance.m_main_gyro.position.y + screenPos.y - centerPos.y};
+						}
+					}
+					else
+					{
+						ShowCursor(true);
+						instance.m_main_gyro.capturing = false;
+					}
+				}
+			}
+			instance.m_main_gyro.pause = tabDown;
+		}
+	});
+	cursor_movement_thread.detach();
 }
 
 void MainWindow::OnMouseLeft(wxMouseEvent& event)
@@ -1839,7 +1865,7 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_mouse_move_time);
 	if (diff.count() > 3000)
 	{
-		ShowCursor(false);
+		// ShowCursor(false);
 	}
 		
 }

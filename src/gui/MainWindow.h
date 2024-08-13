@@ -159,6 +159,8 @@ private:
 
 	void OnRequestRecreateCanvas(wxCommandEvent& event);
 
+	void TrackCursorLoop();
+
 	wxRect GetDesktopRect();
 
 	MemorySearcherTool* m_toolWindow = nullptr;
@@ -175,6 +177,7 @@ private:
 
 	bool m_menu_visible = false;
 	bool m_game_launched = false;
+	bool m_cursor_loop_activated = false;
 
 	#ifdef ENABLE_DISCORD_RPC
 	std::unique_ptr<DiscordPresence> m_discord;
