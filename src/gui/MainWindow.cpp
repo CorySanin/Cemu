@@ -571,8 +571,16 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 
 	m_launched_game_name = CafeSystem::GetForegroundTitleName();
 	#ifdef ENABLE_DISCORD_RPC
-	if (m_discord)
-		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name, CafeSystem::GetForegroundTitleId());
+	std::thread discord_thread = std::thread([this]()
+	{
+		while(m_discord)
+		{
+			m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name, CafeSystem::GetForegroundTitleId());
+			std::this_thread::sleep_for(
+				std::chrono::milliseconds(2000));
+		}
+	});
+	discord_thread.detach();
 	#endif
 
 	if (GetConfig().disable_screensaver)

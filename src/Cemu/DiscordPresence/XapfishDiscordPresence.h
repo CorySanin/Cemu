@@ -16,6 +16,8 @@ public:
 
 	void UpdatePresence(State state, const std::string& text = {}, const uint64 titleId = 0) const;
 	void ClearPresence() const;
+private:
+	bool MapStrMatch(const std::string& map, const std::string& check) const;
 };
 
 #endif
