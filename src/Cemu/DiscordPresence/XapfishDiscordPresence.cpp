@@ -166,6 +166,11 @@ bool DiscordPresence::MapStrMatch(const std::string& map, const std::string& che
 	return (map == check + "_Vss") || (map == check + "_Dul");
 }
 
+bool DiscordPresence::MapStrMatch(const std::string& map, const std::string& check) const
+{
+	return (map == check + "_Vss") || (map == check + "_Dul");
+}
+
 void DiscordPresence::ClearPresence() const
 {
 	if (!m_rpcClient)
