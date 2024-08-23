@@ -131,6 +131,11 @@ void DiscordPresence::UpdatePresence(State state, const std::string& text, const
 					icon_string = "Fld_Kaisou00";
 					details_string = "Hammerhead Bridge";
 				}
+				else if (mapstr == "Fld_Tutorial00_Ttr")
+				{
+					icon_string = "Fld_Tutorial00_Ttr";
+					details_string = "Tutorial Island";
+				}
 			}
 		}
 		break;
