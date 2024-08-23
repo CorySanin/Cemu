@@ -1613,21 +1613,27 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		auto& instance = InputManager::instance();
 		instance.m_main_gyro.capturing = false;
 		SetFullScreen(false);
-	}
+		ShowCursor(true);
+	} else if (code == WXK_TAB)
+		ShowCursor(!InputManager::instance().m_main_gyro.capturing);
 	HotkeySettings::CaptureInput(event);
 }
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
 {
+	if (event.GetKeyCode() == WXK_TAB)
+	{
+		ShowCursor(true);
+	}
 #if defined(__APPLE__)
        // On macOS, allow Cmd+Q to quit the application
-    if (event.CmdDown() && event.GetKeyCode() == 'Q')
+    else if (event.CmdDown() && event.GetKeyCode() == 'Q')
     {
         Close(true);
     }
 #else
      // On Windows/Linux, only Alt+F4 is allowed for quitting
-    if (event.AltDown() && event.GetKeyCode() == WXK_F4)
+    else if (event.AltDown() && event.GetKeyCode() == WXK_F4)
     {
         Close(true);
     }
