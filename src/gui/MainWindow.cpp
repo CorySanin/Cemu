@@ -1396,18 +1396,18 @@ void MainWindow::TrackCursorLoop()
 				{
 					if (this->IsActive())
 					{
-						std::scoped_lock lock(instance.m_main_gyro.m_mutex);
-						int windowWidth, windowHeight;
-						GetClientSize(&windowWidth, &windowHeight);
-						int centerX = windowWidth / 2;
-						int centerY = windowHeight / 2;
-						wxPoint clientPos(centerX, centerY);
-						wxPoint screenPos = wxGetMousePosition();
-						wxPoint centerPos = this->ClientToScreen(clientPos);
-						WarpPointer(centerX, centerY);
 						if (!instance.m_main_gyro.pause)
 						{
-							instance.m_main_gyro.position = {instance.m_main_gyro.position.x + centerPos.x - screenPos.x, instance.m_main_gyro.position.y + screenPos.y - centerPos.y};
+							std::scoped_lock lock(instance.m_main_gyro.m_mutex);
+							int windowWidth, windowHeight;
+							GetClientSize(&windowWidth, &windowHeight);
+							int centerX = windowWidth / 2;
+							int centerY = windowHeight / 2;
+							wxPoint clientPos(centerX, centerY);
+							wxPoint screenPos = wxGetMousePosition();
+							wxPoint centerPos = this->ClientToScreen(clientPos);
+							WarpPointer(centerX, centerY);
+							instance.m_main_gyro.position = {instance.m_main_gyro.position.x + ((centerPos.x - screenPos.x) * 2.0), instance.m_main_gyro.position.y + ((screenPos.y - centerPos.y) * 1.5)};
 						}
 					}
 					else
