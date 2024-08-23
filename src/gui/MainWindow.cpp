@@ -1385,39 +1385,30 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 void MainWindow::TrackCursorLoop()
 {
 	std::thread cursor_movement_thread = std::thread([this]() {
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 		while (m_cursor_loop_activated)
 		{
+			SDL_Event event;
 			bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
 			auto& instance = InputManager::instance();
-
-			if (!tabDown)
-			{
-				if (instance.m_main_gyro.capturing && this->IsActive())
-				{
-					if (this->IsActive())
-					{
-						if (!instance.m_main_gyro.pause)
-						{
-							std::scoped_lock lock(instance.m_main_gyro.m_mutex);
-							int windowWidth, windowHeight;
-							GetClientSize(&windowWidth, &windowHeight);
-							int centerX = windowWidth / 2;
-							int centerY = windowHeight / 2;
-							wxPoint clientPos(centerX, centerY);
-							wxPoint screenPos = wxGetMousePosition();
-							wxPoint centerPos = this->ClientToScreen(clientPos);
-							WarpPointer(centerX, centerY);
-							instance.m_main_gyro.position = {instance.m_main_gyro.position.x + ((centerPos.x - screenPos.x) * 2.0), instance.m_main_gyro.position.y + ((screenPos.y - centerPos.y) * 1.5)};
-						}
-					}
-					else
-					{
-						ShowCursor(true);
-						instance.m_main_gyro.capturing = false;
-					}
-				}
-			}
 			instance.m_main_gyro.pause = tabDown;
+			instance.m_main_gyro.capturing = instance.m_main_gyro.capturing && this->IsActive();
+			if (instance.m_main_gyro.capturing)
+			{
+				if (!instance.m_main_gyro.pause && SDL_PollEvent(&event) != 0 && event.type == SDL_MOUSEMOTION)
+				{
+					std::scoped_lock lock(instance.m_main_gyro.m_mutex);
+					int windowWidth, windowHeight;
+					GetClientSize(&windowWidth, &windowHeight);
+					int centerX = windowWidth / 2;
+					int centerY = windowHeight / 2;
+					WarpPointer(centerX, centerY);
+
+					instance.m_main_gyro.position.x -= event.motion.xrel;
+					instance.m_main_gyro.position.y += event.motion.yrel;
+				}
+				m_cursor_loop_activated = event.type != SDL_QUIT;
+			}
 		}
 	});
 	cursor_movement_thread.detach();
@@ -1437,7 +1428,7 @@ void MainWindow::OnMouseLeft(wxMouseEvent& event)
 		int centerX = windowWidth / 2;
         int centerY = windowHeight / 2;
 		WarpPointer(centerX, centerY);
-		// ShowCursor(false); // hiding the cursor hurts tracking performance 😡
+		ShowCursor(false);
 	}
 	instance.m_main_gyro.capturing = true;
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
@@ -1499,7 +1490,10 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		auto& instance = InputManager::instance();
 		instance.m_main_gyro.capturing = false;
 		SetFullScreen(false);
+		ShowCursor(true);
 	}
+	else if (code == WXK_TAB)
+		ShowCursor(!InputManager::instance().m_main_gyro.capturing);
 	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
 		SetFullScreen(!IsFullScreen());
 	else if (code == WXK_F12)
@@ -1512,6 +1506,10 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
 		(event.CmdDown() && event.GetKeyCode() == 'Q'))
 	{
 		Close(true);
+	}
+	else if (event.GetKeyCode() == WXK_TAB)
+	{
+		ShowCursor(true);
 	}
 	else
 	{
@@ -1850,6 +1848,7 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 		m_update_available = {};
 	}
 
+	/*
 	if (!IsFullScreen() || m_menu_visible)
 		return;
 
@@ -1865,9 +1864,9 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_mouse_move_time);
 	if (diff.count() > 3000)
 	{
-		// ShowCursor(false);
+		ShowCursor(false);
 	}
-		
+	*/
 }
 
 #define BUILD_DATE __DATE__ " " __TIME__
