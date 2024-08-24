@@ -30,10 +30,10 @@ jobs:
           name: cemu-bin-windows-x64
           path: cemu-bin-windows-x64
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: cemu-bin-macos-x64
-          path: cemu-bin-macos-x64
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: cemu-bin-macos-x64
+      #     path: cemu-bin-macos-x64
 
       - name: Initialize
         run: |
@@ -55,7 +55,7 @@ jobs:
           ls ./
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-windows-x64/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu.exe
+          mv cemu-bin-windows-x64/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Xapfish.exe
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-windows-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
 
@@ -64,19 +64,19 @@ jobs:
           VERSION=${{ env.CEMU_VERSION }}
           echo "Cemu Version is $VERSION"
           ls cemu-appimage-x64
-          mv cemu-appimage-x64/Cemu-*-x86_64.AppImage upload/Cemu-$VERSION-x86_64.AppImage
+          mv cemu-appimage-x64/Cemu-*-x86_64.AppImage upload/Xapfish-$VERSION-x86_64.AppImage
         
       - name: Create release from linux-bin
         run: |
           ls ./
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
+          mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Xapfish
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-22.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
           
-      - name: Create release from macos-bin
-        run: cp cemu-bin-macos-x64/Cemu.dmg upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.dmg
+      # - name: Create release from macos-bin
+      #   run: cp cemu-bin-macos-x64/Cemu.dmg upload/xapfish-${{ env.CEMU_VERSION }}-macos-12-x64.dmg
 
       - name: Create release
         run: |
