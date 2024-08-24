@@ -1,5 +1,5 @@
 #include "X_GAME_PROFILE.xpm"
-#include "M_WND_ICON128.xpm"
+#include "M_WND_ICON128x.xpm"
 #include "X_BOX.xpm"
 #include "X_SETTINGS.xpm"
 

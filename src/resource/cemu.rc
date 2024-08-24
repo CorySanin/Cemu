@@ -25,9 +25,9 @@ LANGUAGE LANG_NEUTRAL, 0x8
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-M_WND_ICON128           ICON                    "resource\\logo_icon.ico"
+M_WND_ICON128           ICON                    "resource\\logo_icon_x.ico"
 
-M_WND_ICON16            ICON                    "resource\\logo_icon16.ico"
+M_WND_ICON16            ICON                    "resource\\logo_icon16_x.ico"
 
 X_INPUT_CONTROLLER      ICON                    "resource\\input\\icons8-game-controller-24.ico"
 
