@@ -1,5 +1,5 @@
 # **Xapfish**
-## A fork of Cemu that translates mouse input to gyroscopic input
+### A fork of Cemu that translates mouse input to gyroscopic input
 
 This is very much a work-in-progress. Temper your expectations.
 
@@ -14,4 +14,5 @@ This is very much a work-in-progress. Temper your expectations.
 
 * Configurable mouse sensitivity
 * Dump player info to report cheaters, similar to [sdl-grabber](https://github.com/sdlfoundation/sdl-grabber)
+* Create default key bindings on first launch
 
