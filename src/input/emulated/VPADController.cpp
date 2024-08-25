@@ -665,6 +665,36 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 	{
 		mapping =
 		{
+		#if BOOST_OS_WINDOWS
+			{kButtonId_A, 69},
+			{kButtonId_B, 81},
+			{kButtonId_X, 32},	
+			{kButtonId_Y, 89},
+
+			{kButtonId_L, 33},
+			{kButtonId_R, 4294967294},
+			{kButtonId_ZL, 160},
+			{kButtonId_ZR, 4294967295},
+
+			{kButtonId_Plus, 13},
+			{kButtonId_Minus, 161},
+
+			{kButtonId_Up, 38},
+			{kButtonId_Down, 40},
+			{kButtonId_Left, 37},
+			{kButtonId_Right, 39},
+
+			{kButtonId_StickL_Up, 87},
+			{kButtonId_StickL_Down, 83},
+			{kButtonId_StickL_Left, 65},
+			{kButtonId_StickL_Right, 68},
+
+			{kButtonId_StickR, 70},
+			{kButtonId_StickR_Up, 73},
+			{kButtonId_StickR_Down, 75},
+			{kButtonId_StickR_Left, 74},
+			{kButtonId_StickR_Right, 76},
+		#else
 			{kButtonId_A, 101},
 			{kButtonId_B, 113},
 			{kButtonId_X, 32},
@@ -693,6 +723,7 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 			{kButtonId_StickR_Down, 107},
 			{kButtonId_StickR_Left, 106},
 			{kButtonId_StickR_Right, 108},
+		#endif
 		};
 	}
 	}
