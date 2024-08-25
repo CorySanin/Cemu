@@ -833,6 +833,49 @@ WXLRESULT MainWindow::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lPara
 			InputManager::instance().on_device_changed();
 		}
 	}
+	else if (nMsg == WM_INPUT)
+	{
+		UINT dwSize;
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+		LPBYTE lpb = new BYTE[dwSize];
+		if (lpb == NULL)
+		{
+			return 0;
+		}
+
+		if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+		{
+			delete[] lpb;
+			return 0;
+		}
+
+		RAWINPUT* raw = (RAWINPUT*)lpb;
+
+		if (raw->header.dwType == RIM_TYPEMOUSE)
+		{
+			bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
+			auto& instance = InputManager::instance();
+			instance.m_main_gyro.pause = tabDown;
+			if (instance.m_main_gyro.capturing)
+			{
+				if (!instance.m_main_gyro.pause)
+				{
+					std::scoped_lock lock(instance.m_main_gyro.m_mutex);
+					int windowWidth, windowHeight;
+					GetClientSize(&windowWidth, &windowHeight);
+					int centerX = windowWidth / 2;
+					int centerY = windowHeight / 2;
+					WarpPointer(centerX, centerY);
+
+					instance.m_main_gyro.position.x -= raw->data.mouse.lLastX;
+					instance.m_main_gyro.position.y += raw->data.mouse.lLastY;
+				}
+			}
+		}
+
+		delete[] lpb;
+		return 0;
+	}
 
 	return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
 }
@@ -1384,15 +1427,26 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 
 void MainWindow::TrackCursorLoop()
 {
+	#if BOOST_OS_WINDOWS
+	RAWINPUTDEVICE rid{};
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = 0;
+	rid.hwndTarget = GetHWND();
+	if (RegisterRawInputDevices(&rid, 1, sizeof(rid)) == false)
+	{
+		throw std::runtime_error("couldn't initialize raw mouse input");
+	}
+	#else
 	std::thread cursor_movement_thread = std::thread([this]() {
 		SDL_SetRelativeMouseMode(SDL_TRUE);
+
 		while (m_cursor_loop_activated)
 		{
 			SDL_Event event;
 			bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
 			auto& instance = InputManager::instance();
 			instance.m_main_gyro.pause = tabDown;
-			instance.m_main_gyro.capturing = instance.m_main_gyro.capturing && this->IsActive();
 			if (instance.m_main_gyro.capturing)
 			{
 				if (!instance.m_main_gyro.pause && SDL_PollEvent(&event) != 0 && event.type == SDL_MOUSEMOTION)
@@ -1412,6 +1466,14 @@ void MainWindow::TrackCursorLoop()
 		}
 	});
 	cursor_movement_thread.detach();
+	#endif
+}
+
+void MainWindow::OnFocusLost(wxFocusEvent& event)
+{
+	auto& instance = InputManager::instance();
+	instance.m_main_gyro.capturing = false;
+	::ShowCursor(TRUE);
 }
 
 void MainWindow::OnMouseLeft(wxMouseEvent& event)
@@ -1641,6 +1703,7 @@ void MainWindow::CreateCanvas()
 	m_render_canvas->Bind(wxEVT_RIGHT_DOWN, &MainWindow::OnMouseRight, this);
 	m_render_canvas->Bind(wxEVT_RIGHT_UP, &MainWindow::OnMouseRight, this);
 
+	m_render_canvas->Bind(wxEVT_KILL_FOCUS, &MainWindow::OnFocusLost, this);
 	m_render_canvas->Bind(wxEVT_GESTURE_PAN, &MainWindow::OnGesturePan, this);
 
 	// key events

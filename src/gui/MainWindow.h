@@ -115,6 +115,7 @@ public:
 	void OnDebugViewPPCDebugger(wxCommandEvent& event);
 	void OnDebugViewAudioDebugger(wxCommandEvent& event);
 	void OnDebugViewTextureRelations(wxCommandEvent& event);
+	void OnFocusLost(wxFocusEvent& event);
 	void OnMouseMove(wxMouseEvent& event);
 	void OnMouseLeft(wxMouseEvent& event);
 	void OnMouseRight(wxMouseEvent& event);
