@@ -1473,7 +1473,11 @@ void MainWindow::OnFocusLost(wxFocusEvent& event)
 {
 	auto& instance = InputManager::instance();
 	instance.m_main_gyro.capturing = false;
+	#if BOOST_OS_WINDOWS
 	::ShowCursor(TRUE);
+	#else
+	ShowCursor(true);
+	#endif
 }
 
 void MainWindow::OnMouseLeft(wxMouseEvent& event)
