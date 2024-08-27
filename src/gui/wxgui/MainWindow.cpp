@@ -2077,7 +2077,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(fmt::runtime(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nOriginal authors: {3}").ToStdString()), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = fmt::format(fmt::runtime(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nSource: xapfish.sanin.dev\nOriginal authors: {3}").ToStdString()), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://cemu.info", "https://cemu.info", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
