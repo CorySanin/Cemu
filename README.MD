@@ -15,4 +15,6 @@ This is very much a work-in-progress. Temper your expectations.
 * Configurable mouse sensitivity
 * Dump player info to report cheaters, similar to [sdl-grabber](https://github.com/sdlfoundation/sdl-grabber)
 * Create default key bindings on first launch
+* Allow for easier rebinding of buttons to mouse1 and mouse2
+* Add support for mouse{3,4,5}
 
