@@ -1974,7 +1974,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = formatWxString(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nOriginal authors: {3}"), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = formatWxString(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nSource: xapfish.sanin.dev\nOriginal authors: {3}"), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
