@@ -135,7 +135,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 	}
 	else
 	{
-		SetAppName("Xapfish");
+		SetAppName("Cemu");
 		wxString appName = GetAppName();
 		standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
 		auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)
@@ -175,7 +175,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
 	}
 	else
 	{
-		SetAppName("Xapfish");
+		SetAppName("Cemu");
 		wxString appName = GetAppName();
 		user_data_path = config_path = standardPaths.GetUserDataDir().ToStdString();
 		data_path = standardPaths.GetDataDir().ToStdString();
