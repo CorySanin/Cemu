@@ -106,7 +106,7 @@ std::string _curlUrlUnescape(CURL* curl, std::string_view input)
 bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string& changelogUrlOut)
 {
 	std::string buffer;
-	std::string urlStr("https://cemu.info/api2/version.php?v=");
+	std::string urlStr("https://xapfish.sanin.dev/api2/version.php?v=");
 	auto* curl = curl_easy_init();
 	urlStr.append(_curlUrlEscape(curl, BUILD_VERSION_STRING));
 #if BOOST_OS_LINUX
