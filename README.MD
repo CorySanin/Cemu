@@ -18,3 +18,7 @@ This is very much a work-in-progress. Temper your expectations.
 * Allow for easier rebinding of buttons to mouse1 and mouse2
 * Add support for mouse{3,4,5}
 
+## Contact
+
+* libera.chat: \#sanin
+* discord: [xapfish.sanin.dev/discord](https://xapfish.sanin.dev/discord)
