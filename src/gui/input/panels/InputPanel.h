@@ -43,10 +43,13 @@ protected:
 	void on_edit_key_focus(wxFocusEvent& event);
 	void on_edit_key_kill_focus(wxFocusEvent& event);
 	void on_right_click(wxMouseEvent& event);
+	void on_scroll(wxMouseEvent& event);
 
 	bool reset_focused_element();
 
 	bool m_right_down = false;
+	int m_scroll_amount = 0;
+	int m_selected_mouse_input = -1;
 	int m_focused_element = wxID_NONE;
 	std::unordered_map<int, wxColour> m_color_backup;
 };

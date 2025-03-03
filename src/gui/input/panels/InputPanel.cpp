@@ -10,6 +10,7 @@ InputPanel::InputPanel(wxWindow* parent)
 	: wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
 {
 	Bind(wxEVT_LEFT_UP, &InputPanel::on_left_click, this);
+	Bind(wxEVT_MOUSEWHEEL, &InputPanel::on_scroll, this);
 }
 
 void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller)
@@ -38,6 +39,26 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 		else
 			element->SetValue(wxEmptyString);
 
+		return;
+	}
+
+	if (m_scroll_amount != 0) {
+		int values = 5;
+		if (m_selected_mouse_input == -1) {
+			m_selected_mouse_input = 1;
+		}
+		m_selected_mouse_input += m_scroll_amount;
+		while (m_selected_mouse_input < 0) {
+			m_selected_mouse_input += values;
+		}
+		m_selected_mouse_input = m_selected_mouse_input % 5;
+		m_scroll_amount = 0;
+
+		uint32_t id = UINT32_MAX - m_selected_mouse_input;
+		emulated_controller->set_mapping(mapping, controller, id);
+		element->SetValue(controller->get_button_name(id));
+		element->SetBackgroundColour(kKeyColourNormalMode);
+		m_color_backup[element->GetId()] = kKeyColourNormalMode;
 		return;
 	}
 
@@ -248,6 +269,7 @@ void InputPanel::on_edit_key_focus(wxFocusEvent& event)
 	text->Refresh();
 
 	m_focused_element = text->GetId();
+	m_selected_mouse_input = -1;
 	event.Skip();
 }
 
@@ -266,6 +288,16 @@ void InputPanel::on_right_click(wxMouseEvent& event)
 		wxASSERT(text);
 		text->SetFocus();
 	}
+}
+
+void InputPanel::on_scroll(wxMouseEvent& event)
+{
+	if(m_focused_element == wxID_NONE || event.GetWheelAxis() != wxMouseWheelAxis::wxMOUSE_WHEEL_VERTICAL)
+	{
+		return;
+	}
+	m_scroll_amount += event.GetWheelRotation() / event.GetWheelDelta();
+	event.Skip();
 }
 
 bool InputPanel::reset_focused_element()
