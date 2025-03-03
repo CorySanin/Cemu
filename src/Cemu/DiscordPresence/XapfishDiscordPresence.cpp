@@ -51,6 +51,10 @@ void DiscordPresence::UpdatePresence(State state, const std::string& text, const
 				{
 					details_string = "Shooting Range";
 				}
+				else if (mapstr == "Fld_World00_Wld")
+				{
+					details_string = "Octo Valley";
+				}
 				else if (MapStrMatch(mapstr, "Fld_Crank00"))
 				{
 					icon_string = "Fld_Crank00";
@@ -135,6 +139,11 @@ void DiscordPresence::UpdatePresence(State state, const std::string& text, const
 				{
 					icon_string = "Fld_Tutorial00_Ttr";
 					details_string = "Tutorial Island";
+				}
+				else
+				{
+					icon_string = "sp_mission";
+					details_string = "Octo Valley Mission";
 				}
 			}
 		}
