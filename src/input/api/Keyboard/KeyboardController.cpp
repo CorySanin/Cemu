@@ -17,6 +17,15 @@ std::string KeyboardController::get_button_name(uint64 button) const
 	else if(button == UINT32_MAX - 1) {
 		return "RIGHT_MOUSE";
 	}
+	else if(button == UINT32_MAX - 2) {
+		return "MOUSE_3"; // center button
+	}
+	else if(button == UINT32_MAX - 3) {
+		return "MOUSE_4"; // "forward" button
+	}
+	else if(button == UINT32_MAX - 4) {
+		return "MOUSE_5"; // "back" button
+	}
 #if BOOST_OS_WINDOWS
 	LONG scan_code = MapVirtualKeyA((UINT)button, MAPVK_VK_TO_VSC_EX);
 	if(HIBYTE(scan_code))
@@ -65,6 +74,15 @@ ControllerState KeyboardController::raw_state()
 		}
 		if (instance.m_main_mouse.right_down) {
 			pressedKeys.emplace_back(UINT32_MAX - 1);
+		}
+		if (instance.m_main_mouse.middle_down) {
+			pressedKeys.emplace_back(UINT32_MAX - 2);
+		}
+		if (instance.m_main_mouse.forward_down) {
+			pressedKeys.emplace_back(UINT32_MAX - 3);
+		}
+		if (instance.m_main_mouse.back_down) {
+			pressedKeys.emplace_back(UINT32_MAX - 4);
 		}
 	}
 	result.buttons.SetPressedButtons(pressedKeys);

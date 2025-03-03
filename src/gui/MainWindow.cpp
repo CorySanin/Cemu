@@ -1517,6 +1517,24 @@ void MainWindow::OnMouseRight(wxMouseEvent& event)
 	event.Skip();
 }
 
+void MainWindow::OnMouseAux(wxMouseEvent& event)
+{
+	auto& instance = InputManager::instance();
+	if (event.Button(wxMOUSE_BTN_MIDDLE))
+	{
+		instance.m_main_mouse.middle_down = event.ButtonDown(wxMOUSE_BTN_MIDDLE);
+	}
+	else if (event.Button(wxMOUSE_BTN_AUX1))
+	{
+		instance.m_main_mouse.back_down = event.ButtonDown(wxMOUSE_BTN_AUX1);
+	}
+	else if (event.Button(wxMOUSE_BTN_AUX2))
+	{
+		instance.m_main_mouse.forward_down = event.ButtonDown(wxMOUSE_BTN_AUX2);
+	}
+	event.Skip();
+}
+
 void MainWindow::OnGameListBeginUpdate(wxCommandEvent& event)
 {
 	if (m_game_list->IsShown())
@@ -1706,6 +1724,12 @@ void MainWindow::CreateCanvas()
 	m_render_canvas->Bind(wxEVT_LEFT_UP, &MainWindow::OnMouseLeft, this);
 	m_render_canvas->Bind(wxEVT_RIGHT_DOWN, &MainWindow::OnMouseRight, this);
 	m_render_canvas->Bind(wxEVT_RIGHT_UP, &MainWindow::OnMouseRight, this);
+	m_render_canvas->Bind(wxEVT_MIDDLE_DOWN, &MainWindow::OnMouseAux, this);
+	m_render_canvas->Bind(wxEVT_MIDDLE_UP, &MainWindow::OnMouseAux, this);
+	m_render_canvas->Bind(wxEVT_AUX1_DOWN, &MainWindow::OnMouseAux, this);
+	m_render_canvas->Bind(wxEVT_AUX1_UP, &MainWindow::OnMouseAux, this);
+	m_render_canvas->Bind(wxEVT_AUX2_DOWN, &MainWindow::OnMouseAux, this);
+	m_render_canvas->Bind(wxEVT_AUX2_UP, &MainWindow::OnMouseAux, this);
 
 	m_render_canvas->Bind(wxEVT_KILL_FOCUS, &MainWindow::OnFocusLost, this);
 	m_render_canvas->Bind(wxEVT_GESTURE_PAN, &MainWindow::OnGesturePan, this);

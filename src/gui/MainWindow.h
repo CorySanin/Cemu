@@ -119,6 +119,7 @@ public:
 	void OnMouseMove(wxMouseEvent& event);
 	void OnMouseLeft(wxMouseEvent& event);
 	void OnMouseRight(wxMouseEvent& event);
+	void OnMouseAux(wxMouseEvent& event);
 	void OnGameListBeginUpdate(wxCommandEvent& event);
 	void OnGameListEndUpdate(wxCommandEvent& event);
 	void OnAccountListRefresh(wxCommandEvent& event);

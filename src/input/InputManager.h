@@ -82,6 +82,9 @@ public:
 		glm::ivec2 position{};
 		bool left_down = false;
 		bool right_down = false;
+		bool middle_down = false;
+		bool forward_down = false;
+		bool back_down = false;
 
 		bool left_down_toggle = false;
 		bool right_down_toggle = false;
