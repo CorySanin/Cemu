@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.xapfish.xapfish</id>
+  
+  <name>Xapfish</name>
+  <summary>Wii U Emulator with mouse-to-gyro emulation</summary>
+  
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MPL-2.0</project_license>
+  
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>gamepad</control>
+  </supports>
+  
+  <description>
+    <p>
+      Fork of the popular Wii U emulator Cemu with added support for converting mouse input to gyro.
+    </p>
+  </description>
+  
+  <launchable type="desktop-id">com.xapfish.Xapfish.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://sanin.dev/assets/images/webp/screenshots/xapfish.webp</image>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://cemu.info</url>
+  <url type="bugtracker">https://github.com/cemu-project/Cemu/issues</url>
+  <categories>
+    <category>Game</category>
+    <category>Emulator</category>
+  </categories>
+  <recommends>
+    <memory>8192</memory>
+  </recommends>
+</component>
