@@ -32,6 +32,14 @@ add_library(CemuComponents
   Tools/DownloadManager/DownloadManager.h
 )
 
+if(ENABLE_DISCORD_RPC)
+target_sources(CemuComponents PRIVATE
+		DiscordPresence/DiscordPresence.cpp
+		DiscordPresence/DiscordPresence.h
+		DiscordPresence/DiscordRPCLite.cpp
+		DiscordPresence/DiscordRPCLite.h)
+endif()
+
 set_property(TARGET CemuComponents PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(CemuComponents PUBLIC "../")
@@ -52,7 +60,3 @@ target_link_libraries(CemuComponents PRIVATE
 
 # PUBLIC because fmt/format.h is included in ExpressionParser/ExpressionParser.h
 target_link_libraries(CemuComponents PUBLIC fmt::fmt)
-
-if(ENABLE_DISCORD_RPC)
-	target_link_libraries(CemuComponents PRIVATE discord-rpc)
-endif()

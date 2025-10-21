@@ -11,6 +11,8 @@
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"
+#include "HW/Espresso/Debugger/Debugger.h"
+
 #include <cinttypes>
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
@@ -85,7 +87,7 @@ bool GraphicPack2::LoadGraphicPack(const fs::path& rulesPath, IniParser& rules)
 		auto gp = std::make_shared<GraphicPack2>(rulesPath, rules);
 
 		// check if enabled and preset set
-		const auto& config_entries = g_config.data().graphic_pack_entries;
+		const auto& config_entries = GetConfigHandle().data().graphic_pack_entries;
 
 		// legacy absolute path checking for not breaking compatibility
 		auto file = gp->GetRulesPath();
@@ -130,6 +132,7 @@ bool GraphicPack2::ActivateGraphicPack(const std::shared_ptr<GraphicPack2>& grap
 	if (graphic_pack->Activate())
 	{
 		s_active_graphic_packs.push_back(graphic_pack);
+		g_debuggerDispatcher.NotifyGraphicPacksModified();
 		return true;
 	}
 
@@ -153,6 +156,7 @@ bool GraphicPack2::DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& gr
 
 	graphic_pack->Deactivate();
 	s_active_graphic_packs.erase(it);
+	g_debuggerDispatcher.NotifyGraphicPacksModified();
 	return true;
 }
 
@@ -821,7 +825,7 @@ void GraphicPack2::AddConstantsForCurrentPreset(ExpressionParser& ep)
 	}
 }
 
-void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC)
+void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC, const char* virtualMountBase)
 {
 	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
 	uint64 aocTitleId = (currentTitleId & 0xFFFFFFFFull) | 0x0005000c00000000ull;
@@ -836,7 +840,7 @@ void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC
 			}
 			else
 			{
-				virtualMountPath = fs::path("vol/content/") / virtualMountPath;
+				virtualMountPath = fs::path(virtualMountBase) / virtualMountPath;
 			}
 			fscDeviceRedirect_add(virtualMountPath.generic_string(), it.file_size(), it.path().generic_string(), m_fs_priority);
 		}		
@@ -861,7 +865,7 @@ void GraphicPack2::LoadReplacedFiles()
 	{
 		// setup redirections	
 		fscDeviceRedirect_map();
-		_iterateReplacedFiles(contentPath, false);
+		_iterateReplacedFiles(contentPath, false, "vol/content/");
 	}
 	// /aoc/
 	fs::path aocPath(gfxPackPath);
@@ -874,7 +878,18 @@ void GraphicPack2::LoadReplacedFiles()
 		aocTitleId |= 0x0005000c00000000ULL;
 		// setup redirections	
 		fscDeviceRedirect_map();
-		_iterateReplacedFiles(aocPath, true);
+		_iterateReplacedFiles(aocPath, true, nullptr);
+	}
+	
+	// /code/
+	fs::path codePath(gfxPackPath);
+	codePath.append("code");
+	
+	if (fs::exists(codePath, ec))
+	{
+	    // setup redirections
+		fscDeviceRedirect_map();
+		_iterateReplacedFiles(codePath, false, CafeSystem::GetInternalVirtualCodeFolder().c_str());
 	}
 }
 

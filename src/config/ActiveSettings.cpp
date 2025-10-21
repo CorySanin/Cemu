@@ -60,14 +60,6 @@ bool ActiveSettings::DisplayDRCEnabled()
 	return g_current_game_profile->StartWithGamepadView();
 }
 
-bool ActiveSettings::FullscreenEnabled()
-{
-	if (LaunchSettings::FullscreenEnabled().has_value())
-		return LaunchSettings::FullscreenEnabled().value();
-
-	return GetConfig().fullscreen;
-}
-
 CPUMode ActiveSettings::GetCPUMode()
 {
 	auto mode = g_current_game_profile->GetCPUMode().value_or(CPUMode::Auto);
@@ -165,6 +157,11 @@ bool ActiveSettings::DumpTexturesEnabled()
 	return s_dump_textures;
 }
 
+bool ActiveSettings::DumpRecompilerFunctionsEnabled()
+{
+	return s_dump_recompiler_functions;
+}
+
 bool ActiveSettings::DumpLibcurlRequestsEnabled()
 {
 	return s_dump_libcurl_requests;
@@ -178,6 +175,11 @@ void ActiveSettings::EnableDumpShaders(bool state)
 void ActiveSettings::EnableDumpTextures(bool state)
 {
 	s_dump_textures = state;
+}
+
+void ActiveSettings::EnableDumpRecompilerFunctions(bool state)
+{
+	s_dump_recompiler_functions = state;
 }
 
 void ActiveSettings::EnableDumpLibcurlRequests(bool state)

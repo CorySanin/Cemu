@@ -404,7 +404,7 @@ namespace snd_core
 		{
 			try
 			{
-				g_tvAudio = IAudioAPI::CreateDeviceFromConfig(true, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
+				g_tvAudio = IAudioAPI::CreateDeviceFromConfig(IAudioAPI::AudioType::TV, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
 			}
 			catch (std::runtime_error& ex)
 			{
@@ -413,13 +413,12 @@ namespace snd_core
 			}
 		}
 
+		g_padVolume = GetConfig().pad_volume;
 		if (!g_padAudio)
 		{
 			try
 			{
-				g_padAudio = IAudioAPI::CreateDeviceFromConfig(false, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
-				if(g_padAudio)
-					g_padVolume = g_padAudio->GetVolume();
+				g_padAudio = IAudioAPI::CreateDeviceFromConfig(IAudioAPI::AudioType::Gamepad, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
 			}
 			catch (std::runtime_error& ex)
 			{
@@ -442,6 +441,11 @@ namespace snd_core
 			g_padAudio->Stop();
 			g_padAudio.reset();
 		}
+		if (g_portalAudio)
+		{
+			g_portalAudio->Stop();
+			g_portalAudio.reset();
+		}
 	}
 
 	void AXOut_updateDevicePlayState(bool isPlaying)
@@ -461,6 +465,14 @@ namespace snd_core
 				g_padAudio->Play();
 			else
 				g_padAudio->Stop();
+		}
+
+		if (g_portalAudio)
+		{
+			if (isPlaying)
+				g_portalAudio->Play();
+			else
+				g_portalAudio->Stop();
 		}
 	}
 

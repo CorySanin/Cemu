@@ -25,7 +25,7 @@ if (ENABLE_VCPKG)
 	OUTPUT_VARIABLE is_vcpkg_shallow
 	OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-	
+
 	if(is_vcpkg_shallow STREQUAL "true")
 		message(STATUS "vcpkg is shallow. Unshallowing it now...")
 		execute_process(
@@ -37,11 +37,11 @@ if (ENABLE_VCPKG)
 	endif()
 
 	if(UNIX AND NOT APPLE)
-		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_linux")
+		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_linux;${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
 	elseif(APPLE)
-		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_mac")
+		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_mac;${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
 	else()
-		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
+		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_win;${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
 	endif()
 	set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		CACHE STRING "Vcpkg toolchain file")
@@ -93,7 +93,7 @@ endif()
 
 if (APPLE)
     enable_language(OBJC OBJCXX)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.4")
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -159,14 +159,14 @@ if (UNIX AND NOT APPLE)
 			BASENAME viewporter)
 		add_library(CemuWaylandProtocols STATIC ${WAYLAND_PROTOCOL_SRCS})
 		target_include_directories(CemuWaylandProtocols PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-
+		target_include_directories(CemuWaylandProtocols PRIVATE ${Wayland_INCLUDE_DIRS})
 		add_compile_definitions(HAS_WAYLAND)
 	endif()
 	find_package(GTK3 REQUIRED)
 
 	if(ENABLE_BLUEZ)
 		find_package(bluez REQUIRED)
-		set(ENABLE_WIIMOTE ON)
+		set(SUPPORTS_WIIMOTE ON)
 		add_compile_definitions(HAS_BLUEZ)
 	endif()
 
@@ -182,13 +182,11 @@ endif()
 
 if (ENABLE_DISCORD_RPC)
 	add_compile_definitions(ENABLE_DISCORD_RPC)
-	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
-	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
 
 if (ENABLE_HIDAPI)
 	find_package(hidapi REQUIRED)
-	set(ENABLE_WIIMOTE ON)
+	set(SUPPORTS_WIIMOTE ON)
 	add_compile_definitions(HAS_HIDAPI)
 endif ()
 
@@ -201,7 +199,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if (ENABLE_WXWIDGETS)
-	find_package(wxWidgets 3.2 REQUIRED COMPONENTS base core gl propgrid xrc)
+	find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core gl propgrid xrc)
 endif()
 
 if (ENABLE_CUBEB)
@@ -221,6 +219,15 @@ if (ENABLE_CUBEB)
 endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
+
+if (CMAKE_OSX_ARCHITECTURES)
+	set(CEMU_ARCHITECTURE ${CMAKE_OSX_ARCHITECTURES})
+else()
+	set(CEMU_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
+	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
+endif()
 
 find_package(ZArchive)
 if (NOT ZArchive_FOUND)
