@@ -874,7 +874,7 @@ WXLRESULT MainWindow::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lPara
 
 		if (raw->header.dwType == RIM_TYPEMOUSE)
 		{
-			bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
+			bool tabDown = WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::TAB);
 			auto& instance = InputManager::instance();
 			instance.m_main_gyro.pause = tabDown;
 			if (instance.m_main_gyro.capturing)
@@ -1468,7 +1468,7 @@ void MainWindow::TrackCursorLoop()
 		while (m_cursor_loop_activated)
 		{
 			SDL_Event event;
-			bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
+			bool tabDown = WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::TAB);
 			auto& instance = InputManager::instance();
 			instance.m_main_gyro.pause = tabDown;
 			if (instance.m_main_gyro.capturing)
@@ -1592,20 +1592,6 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
-	const auto code = event.GetKeyCode();
-	if (code == WXK_ESCAPE)
-	{
-		auto& instance = InputManager::instance();
-		instance.m_main_gyro.capturing = false;
-		SetFullScreen(false);
-		ShowCursor(true);
-	}
-	else if (code == WXK_TAB)
-		ShowCursor(!InputManager::instance().m_main_gyro.capturing);
-	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
-		SetFullScreen(!IsFullScreen());
-	else if (code == WXK_F12)
-		g_window_info.has_screenshot_request = true; // async screenshot request
 	HotkeySettings::CaptureInput(event);
 }
 
@@ -1624,6 +1610,10 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
         Close(true);
     }
 #endif
+else if (event.GetKeyCode() == WXK_TAB)
+	{
+		ShowCursor(true);
+	}
     else
     {
         event.Skip(); 
