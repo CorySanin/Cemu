@@ -2475,8 +2475,10 @@ void MainWindow::RecreateMenu()
 	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"), wxEmptyString);
 	accurateBarriers->Check(GetConfig().vk_accurate_barriers);
 
-    auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, _("&GPU capture (Metal)"));
-    gpuCapture->Enable(m_game_launched && g_renderer->GetType() == RendererAPI::Metal);
+#if ENABLE_METAL
+	auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, _("&GPU capture (Metal)"));
+	gpuCapture->Enable(m_game_launched && g_renderer->GetType() == RendererAPI::Metal);
+#endif
 
 	debugMenu->AppendSeparator();
 
