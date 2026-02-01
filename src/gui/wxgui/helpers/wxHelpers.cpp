@@ -72,6 +72,15 @@ uint32 fix_raw_keycode(uint32 keycode, uint32 raw_flags)
 	}
 #endif
 
+#if BOOST_OS_LINUX
+	// remap TAB.
+	if (keycode == 65056) {
+		return 65289;
+	}
+	if (keycode >= 97 && keycode <= 122) {
+		return keycode - 32;
+	}
+#endif
 	return keycode;
 }
 
