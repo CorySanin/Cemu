@@ -1604,6 +1604,11 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
 
+	if (event.GetKeyCode() == WXK_TAB) {
+		ShowCursor(false);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+	}
+
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
@@ -1635,8 +1640,14 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
         Close(true);
     }
 #endif
-else if (event.GetKeyCode() == WXK_TAB)
+	else if (event.GetKeyCode() == WXK_TAB)
+		{
+			ShowCursor(true);
+		}
+	else if (event.GetKeyCode() == WXK_ESCAPE)
 	{
+		auto& instance = InputManager::instance();
+		instance.m_main_gyro.capturing = false;
 		ShowCursor(true);
 	}
     else
