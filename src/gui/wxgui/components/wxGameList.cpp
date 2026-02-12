@@ -712,7 +712,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				GetConfig().SetGameListFavorite(title_id, !GetConfig().IsGameListFavorite(title_id));
 				SortEntries();
 				UpdateItemColors();
-				//SaveConfig();
+				SaveConfig(true);
 				break;
 			case kContextMenuEditName:
 			{
