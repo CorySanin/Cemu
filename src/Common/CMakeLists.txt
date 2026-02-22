@@ -68,7 +68,7 @@ target_link_libraries(CemuCommon PRIVATE
 )
 
 if (UNIX AND NOT APPLE)
-	target_link_libraries(CemuCommon PRIVATE X11::X11 X11::Xrender X11::Xutil)
+	target_link_libraries(CemuCommon PRIVATE X11::X11 X11::Xrender X11::Xutil X11::Xi)
 endif()
 
 # PUBLIC because:

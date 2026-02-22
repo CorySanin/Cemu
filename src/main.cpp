@@ -253,6 +253,12 @@ int main(int argc, char *argv[])
 {
 #if BOOST_OS_LINUX
     XInitThreads();
+
+	// Xapfish:
+	// Need to force GTK (used by wxwidgets)
+	// to use X11 as we cannot easily do
+	// relative mouse stuff with GTK Wayland.
+	setenv("GDK_BACKEND", "x11", 1);
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
