@@ -9,6 +9,7 @@
 #include <byteswap.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
+#include <X11/extensions/XInput2.h>
 #include <X11/Xutil.h>
 #include "Common/unix/platform.h"
 #elif BOOST_OS_MACOS

@@ -61,6 +61,11 @@
 #include "gamemode_client.h"
 #endif
 
+#if defined(__WXGTK__)
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#endif
+
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -1442,6 +1447,118 @@ void MainWindow::TrackCursorLoop()
 	{
 		throw std::runtime_error("couldn't initialize raw mouse input");
 	}
+	#elif defined(__WXGTK__)
+	// On Linux we cannot use a typical SDL pathway to get
+	// relative mouse input events.
+	//
+	// Relative mouse stuff is tied to a window in SDL,
+	// especially so in SDL2->SDL3 pathways.
+	std::thread cursor_movement_thread = std::thread([this]() {
+		GtkWidget *widget = GetHandle();
+		GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+
+		// Open a new display just for us so we don't
+		// interfere with the rest of Cemu/GTK.
+		Display *dpy = XOpenDisplay(NULL);
+		if (!dpy) {
+			wxMessageBox(_("Failed to open X11 display."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+			return;
+		}
+
+		Window xwin = GDK_WINDOW_XID(gtk_widget_get_window(toplevel));
+		Window root = DefaultRootWindow(dpy);
+
+		int xi_opcode, event, error;
+		if (!XQueryExtension(dpy, "XInputExtension", &xi_opcode, &event, &error)) {
+			wxMessageBox(_("XInput2 missing. Mouse input will not work."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+			return;
+		}
+
+		// Request XInput2... Another reason we need to
+		// make our own dpy.
+		int major = 2, minor = 2;
+		XIQueryVersion(dpy, &major, &minor);
+
+		XIEventMask mask;
+		unsigned char mask_bits[XIMaskLen(XI_LASTEVENT)] = {0};
+
+		mask.deviceid = XIAllMasterDevices;
+		mask.mask_len = sizeof(mask_bits);
+		mask.mask = mask_bits;
+
+		XISetMask(mask_bits, XI_RawKeyPress);
+		XISetMask(mask_bits, XI_RawKeyRelease);
+		XISetMask(mask_bits, XI_RawMotion);
+
+		XISelectEvents(dpy, root, &mask, 1);
+		XFlush(dpy);
+
+		while (m_cursor_loop_activated) {
+			auto& instance = InputManager::instance();
+			
+			bool warp = false;
+			int centerX = 0;
+			int centerY = 0;
+
+			XEvent xev;
+			XNextEvent(dpy, &xev);
+			do {
+				if (xev.xcookie.type != GenericEvent ||
+					xev.xcookie.extension != xi_opcode)
+					continue;
+
+				if (!XGetEventData(dpy, &xev.xcookie))
+					continue;
+
+				if (xev.xcookie.evtype == XI_RawButtonPress ||
+					xev.xcookie.evtype == XI_RawButtonRelease) {
+					XIRawEvent *rev = (XIRawEvent *)xev.xcookie.data;
+
+					// Toggle gyro pause when Tab (23) is pressed
+					// and the gamepad screen is shown.
+					if (rev->detail == 23) {
+						bool press = xev.xcookie.evtype == XI_RawButtonPress;
+						instance.m_main_gyro.pause = press;
+					}
+				}
+
+				bool usingGyro = instance.m_main_gyro.capturing &&
+								!instance.m_main_gyro.pause;
+
+				if (xev.xcookie.evtype == XI_RawMotion && usingGyro) {
+					XIRawEvent *rev = (XIRawEvent *)xev.xcookie.data;
+
+					double dx = 0, dy = 0;
+					double *val = rev->raw_values;
+
+					if (XIMaskIsSet(rev->valuators.mask, 0)) dx = *val++;
+					if (XIMaskIsSet(rev->valuators.mask, 1)) dy = *val++;
+
+					{
+						std::scoped_lock lock(instance.m_main_gyro.m_mutex);
+						instance.m_main_gyro.position.x -= dx;
+						instance.m_main_gyro.position.y += dy;
+					}
+
+					int windowWidth, windowHeight;
+					GetClientSize(&windowWidth, &windowHeight);
+					centerX = windowWidth / 2;
+					centerY = windowHeight / 2;
+
+					warp = true;
+				}
+
+				XFreeEventData(dpy, &xev.xcookie);
+			} while (XPending(dpy) && XNextEvent(dpy, &xev));
+
+			if (warp) {
+				XWarpPointer(dpy, 0, xwin, 0, 0, 0, 0, centerX, centerY);
+				XFlush(dpy);
+			}
+		}
+	});
+
+	cursor_movement_thread.detach();
 	#else
 	std::thread cursor_movement_thread = std::thread([this]() {
 		SDL_SetRelativeMouseMode(SDL_TRUE);
