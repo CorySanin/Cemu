@@ -1445,13 +1445,8 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	m_mouse_position = wxGetMousePosition();
 
 	auto& instance = InputManager::instance();
-	bool capturingCursor = instance.m_main_gyro.capturing && this->IsActive();
-	ShowCursor(!capturingCursor);
-
-	auto& instance = InputManager::instance();
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
 	auto physPos = ToPhys(event.GetPosition());
-	bool tabDown = gui_isKeyDown(PlatformKeyCodes::TAB);
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
 
