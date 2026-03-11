@@ -1,6 +1,4 @@
 add_library(CemuComponents
-  DiscordPresence/DiscordPresence.cpp
-  DiscordPresence/DiscordPresence.h
   DiscordPresence/XapfishDiscordPresence.cpp
   DiscordPresence/XapfishDiscordPresence.h
   ExpressionParser/ExpressionParser.cpp
