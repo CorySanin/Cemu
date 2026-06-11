@@ -1,5 +1,9 @@
 #pragma once
 
+#include <type_traits>
+#include <cstddef>
+#include <vector>
+
 uint32 coreinit_allocFromSysArea(uint32 size, uint32 alignment);
 class SysAllocatorBase;
 
@@ -113,9 +117,8 @@ public:
 	operator void*() { return m_sysMem->GetPtr(); }
 
 	// for all arrays except bool
-	template<class Q = T>
-	typename std::enable_if< count != 1 && !std::is_same<Q, bool>::value, Q >::type&
-		operator[](int index)
+	T& operator[](int index)
+		requires(count != 1) && (!std::is_same_v<T, bool>)
 	{
 		// return tmp data until we allocated in sys mem
 		if (m_sysMem.GetMPTR() == 0)
@@ -125,7 +128,7 @@ public:
 
 		return m_sysMem[index];
 	}
-private:
+  private:
 	SysAllocator(uint32 memptr)
 		: m_sysMem(memptr)
 	{}

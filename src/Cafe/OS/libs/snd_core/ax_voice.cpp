@@ -401,26 +401,22 @@ namespace snd_core
 		if (vpb != nullptr)
 		{
 			AXVoiceList_AddVoice(vpb, priority);
-			vpb->userParam = userParam;
-			vpb->callback = MPTR_NULL;
-			vpb->callbackEx = callbackEx;
-			AXVPB_SetVoiceDefault(vpb);
 		}
 		else
 		{
-			// no free voice available, drop voice with lower priority
-			AXVPB* droppedVoice = AXVPB_DropVoice(priority);
-			if (droppedVoice == nullptr)
+			// no free voice available, try to drop a voice with lower priority
+			vpb = AXVPB_DropVoice(priority);
+			if (!vpb)
 			{
 				// no voice available
 				__AXVoiceListSpinlock.unlock();
 				return nullptr;
 			}
-			vpb->userParam = userParam;
-			vpb->callback = MPTR_NULL;
-			vpb->callbackEx = callbackEx;
-			AXVPB_SetVoiceDefault(vpb);
 		}
+		vpb->userParam = userParam;
+		vpb->callback = MPTR_NULL;
+		vpb->callbackEx = callbackEx;
+		AXVPB_SetVoiceDefault(vpb);
 		__AXVoiceListSpinlock.unlock();
 		return vpb;
 	}
@@ -1230,72 +1226,5 @@ namespace snd_core
 		}
 		vpbLoopTracker_prevCurrentOffset[voiceIndex] = currentOffset;
 		return vpbLoopTracker_loopCount[voiceIndex];
-	}
-
-	void Initialize()
-	{
-		// snd_core
-		cafeExportRegister("snd_core", AXSetVoiceDeviceMix, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXComputeLpfCoefs, LogType::SoundAPI);
-
-		cafeExportRegister("snd_core", AXSetVoiceState, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceType, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceAdpcmLoop, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceSrc, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceSrcType, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceSrcRatio, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceVe, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceAdpcm, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceLoop, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceLpf, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceLpfCoefs, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceBiquad, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceBiquadCoefs, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceOffsets, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceOffsetsEx, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceCurrentOffset, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceCurrentOffsetEx, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceLoopOffset, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceLoopOffsetEx, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceEndOffset, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceEndOffsetEx, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXSetVoiceSamplesAddr, LogType::SoundAPI);
-
-		cafeExportRegister("snd_core", AXIsVoiceRunning, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXGetVoiceLoopCount, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXGetVoiceOffsets, LogType::SoundAPI);
-		cafeExportRegister("snd_core", AXGetVoiceCurrentOffsetEx, LogType::SoundAPI);
-
-		// sndcore2
-		cafeExportRegister("sndcore2", AXSetVoiceDeviceMix, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXComputeLpfCoefs, LogType::SoundAPI);
-
-		cafeExportRegister("sndcore2", AXSetVoiceState, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceType, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceAdpcmLoop, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceSrc, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceSrcType, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceSrcRatio, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceVe, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceAdpcm, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceLoop, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceLpf, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceLpfCoefs, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceBiquad, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceBiquadCoefs, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceOffsets, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceOffsetsEx, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceCurrentOffset, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceCurrentOffsetEx, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceLoopOffset, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceLoopOffsetEx, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceEndOffset, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceEndOffsetEx, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXSetVoiceSamplesAddr, LogType::SoundAPI);
-
-		cafeExportRegister("sndcore2", AXIsVoiceRunning, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXGetVoiceLoopCount, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXGetVoiceOffsets, LogType::SoundAPI);
-		cafeExportRegister("sndcore2", AXGetVoiceCurrentOffsetEx, LogType::SoundAPI);
 	}
 }

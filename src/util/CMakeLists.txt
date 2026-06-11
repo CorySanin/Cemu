@@ -92,13 +92,5 @@ set_property(TARGET CemuUtil PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CON
 target_include_directories(CemuUtil PUBLIC "../")
 
 target_link_libraries(CemuUtil PRIVATE
-	CemuCommon
-	CemuConfig
-	Boost::headers
-	Boost::nowide
-	OpenSSL::Crypto
+  CemuCommon
 )
-
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuUtil PRIVATE wx::base wx::core)
-endif()

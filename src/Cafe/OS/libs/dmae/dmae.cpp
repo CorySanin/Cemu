@@ -36,6 +36,16 @@ void dmaeExport_DMAECopyMem(PPCInterpreter_t* hCPU)
 			dstBuffer[i] = _swapEndianU32(srcBuffer[i]);
 		}
 	}
+	else if( hCPU->gpr[6] == DMAE_ENDIAN_16 )
+	{
+		// swap per uint16
+		uint16* srcBuffer = (uint16*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
+		uint16* dstBuffer = (uint16*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
+		for(uint32 i=0; i<hCPU->gpr[5]*2; i++)
+		{
+			dstBuffer[i] = _swapEndianU16(srcBuffer[i]);
+		}
+	}
 	else
 	{
 		cemuLog_logDebug(LogType::Force, "DMAECopyMem(): Unsupported endian swap\n");
@@ -108,12 +118,28 @@ void dmaeExport_DMAEGetRetiredTimeStamp(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction64(hCPU, dmaeRetiredTimestamp);
 }
 
-
-void dmae_load()
+namespace dmae
 {
-	osLib_addFunction("dmae", "DMAECopyMem", dmaeExport_DMAECopyMem);
-	osLib_addFunction("dmae", "DMAEFillMem", dmaeExport_DMAEFillMem);
-	osLib_addFunction("dmae", "DMAEWaitDone", dmaeExport_DMAEWaitDone);
-	osLib_addFunction("dmae", "DMAESemaphore", dmaeExport_DMAESemaphore);
-	osLib_addFunction("dmae", "DMAEGetRetiredTimeStamp", dmaeExport_DMAEGetRetiredTimeStamp);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "dmae";
+		}
+
+		void RPLMapped() override
+		{
+			osLib_addFunction("dmae", "DMAECopyMem", dmaeExport_DMAECopyMem);
+			osLib_addFunction("dmae", "DMAEFillMem", dmaeExport_DMAEFillMem);
+			osLib_addFunction("dmae", "DMAEWaitDone", dmaeExport_DMAEWaitDone);
+			osLib_addFunction("dmae", "DMAESemaphore", dmaeExport_DMAESemaphore);
+			osLib_addFunction("dmae", "DMAEGetRetiredTimeStamp", dmaeExport_DMAEGetRetiredTimeStamp);
+		}
+	}s_COSDMAEModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSDMAEModule;
+	}
 }

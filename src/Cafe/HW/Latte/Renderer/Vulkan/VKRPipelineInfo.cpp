@@ -26,7 +26,6 @@ PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFe
 
 	// init VKRObjPipeline
 	m_vkrObjPipeline = new VKRObjectPipeline();
-	m_vkrObjPipeline->pipeline = VK_NULL_HANDLE;
 
 	// track dependency with shaders
 	if (vertexShaderVk)
@@ -43,6 +42,8 @@ PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFe
 		if (pixelShader->baseHash == 0x6f6f6e7b9aae57af && pixelShader->auxHash == 0x00078787f9249249) // BotW lava
 			neverSkipAccurateBarrier = true;
 		if (pixelShader->baseHash == 0x4c0bd596e3aef4a6 && pixelShader->auxHash == 0x003c3c3fc9269249) // BotW foam layer for water on the bottom of waterfalls
+			neverSkipAccurateBarrier = true;
+		if (pixelShader->baseHash == 0x3a7e6b48dae31305 && pixelShader->auxHash == 0x003c3c3fc9269249) // BotW Gerudo Town water
 			neverSkipAccurateBarrier = true;
 	}
 }

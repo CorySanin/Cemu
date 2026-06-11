@@ -161,7 +161,7 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 
 	if( dstMipWidth != srcMipWidth || dstMipHeight != srcMipHeight )
 	{
-		cemu_assert_debug(false);
+		cemuLog_logDebugOnce(LogType::Force, "GX2CopySurface: Mismatching mip resolution");
 		return;
 	}
 	// handle format
@@ -264,7 +264,7 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 	// send copy command to GPU
 	if( srcHwTileMode > 0 && srcHwTileMode < 16 && dstHwTileMode > 0 && dstHwTileMode < 16 || requestGPURAMCopy )
 	{
-		GX2ReserveCmdSpace(1+13*2);
+		GX2::GX2ReserveCmdSpace(1+13*2);
 
 		gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13*2),
 		// src
@@ -435,13 +435,13 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	GX2ColorBuffer* srcColorBuffer = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	GX2Surface* srcSurface = &srcColorBuffer->surface;
 	GX2Surface* dstSurface = (GX2Surface*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
-	uint32 srcMip = _swapEndianU32(srcColorBuffer->viewMip);
+	uint32 srcMip = srcColorBuffer->viewMip;
 	uint32 dstMip = hCPU->gpr[5];
-	uint32 srcSlice = _swapEndianU32(srcColorBuffer->viewFirstSlice);
+	uint32 srcSlice = srcColorBuffer->viewFirstSlice;
 	uint32 dstSlice = hCPU->gpr[6];
 
 #ifdef CEMU_DEBUG_ASSERT
-	if( _swapEndianU32(srcColorBuffer->viewMip) != 0 || _swapEndianU32(srcColorBuffer->viewFirstSlice) != 0 )
+	if( srcColorBuffer->viewMip != 0 || srcColorBuffer->viewFirstSlice != 0 )
 		assert_dbg();
 #endif
 
@@ -540,7 +540,7 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	uint32 dstDepth = std::max<uint32>(surfOutDst.depth, 1);
 
 	// send copy command to GPU
-	GX2ReserveCmdSpace(1 + 13 * 2);
+	GX2::GX2ReserveCmdSpace(1 + 13 * 2);
 	gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13 * 2),
 		// src
 		(uint32)srcSurface->imagePtr,
@@ -618,8 +618,8 @@ void gx2Export_GX2ConvertDepthBufferToTextureSurface(PPCInterpreter_t* hCPU)
 
 	sint32 srcMip = 0;
 
-	uint32 numSlices = std::max<uint32>(_swapEndianU32(depthBuffer->viewNumSlices), 1);
-	GX2ReserveCmdSpace((1 + 13 * 2) * numSlices);
+	uint32 numSlices = std::max<uint32>(depthBuffer->viewNumSlices, 1);
+	GX2::GX2ReserveCmdSpace((1 + 13 * 2) * numSlices);
 	for (uint32 subSliceIndex = 0; subSliceIndex < numSlices; subSliceIndex++)
 	{
 		// send copy command to GPU

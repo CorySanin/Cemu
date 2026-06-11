@@ -18,10 +18,6 @@ public:
 	virtual bool IsCompiled() = 0;
 	virtual bool WaitForCompiled() = 0;
 
-	virtual sint32 GetUniformLocation(const char* name) = 0;
-
-	virtual void SetUniform2fv(sint32 location, void* data, sint32 count) = 0;
-	virtual void SetUniform4iv(sint32 location, void* data, sint32 count) = 0;
 
 protected:
 	// if isGameShader is true, then baseHash and auxHash are valid

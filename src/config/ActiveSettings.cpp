@@ -6,6 +6,7 @@
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
 #include "util/helpers/helpers.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
 
 void ActiveSettings::SetPaths(bool isPortableMode,
 		const fs::path& executablePath,
@@ -60,14 +61,6 @@ bool ActiveSettings::DisplayDRCEnabled()
 	return g_current_game_profile->StartWithGamepadView();
 }
 
-bool ActiveSettings::FullscreenEnabled()
-{
-	if (LaunchSettings::FullscreenEnabled().has_value())
-		return LaunchSettings::FullscreenEnabled().value();
-
-	return GetConfig().fullscreen;
-}
-
 CPUMode ActiveSettings::GetCPUMode()
 {
 	auto mode = g_current_game_profile->GetCPUMode().value_or(CPUMode::Auto);
@@ -120,6 +113,18 @@ GraphicAPI ActiveSettings::GetGraphicsAPI()
 	return api;
 }
 
+float ActiveSettings::GetTVGamma()
+{
+	const auto& config = GetConfig();
+	return config.overrideGammaValue.GetValue() + LatteGPUState.tvGamma * !config.overrideAppGammaPreference.GetValue();
+}
+
+float ActiveSettings::GetDRCGamma()
+{
+	const auto& config = GetConfig();
+	return config.overrideGammaValue.GetValue() + LatteGPUState.drcGamma * !config.overrideAppGammaPreference.GetValue();
+}
+
 bool ActiveSettings::AudioOutputOnlyAux()
 {
 	return s_audio_aux_only;
@@ -165,6 +170,11 @@ bool ActiveSettings::DumpTexturesEnabled()
 	return s_dump_textures;
 }
 
+bool ActiveSettings::DumpRecompilerFunctionsEnabled()
+{
+	return s_dump_recompiler_functions;
+}
+
 bool ActiveSettings::DumpLibcurlRequestsEnabled()
 {
 	return s_dump_libcurl_requests;
@@ -178,6 +188,11 @@ void ActiveSettings::EnableDumpShaders(bool state)
 void ActiveSettings::EnableDumpTextures(bool state)
 {
 	s_dump_textures = state;
+}
+
+void ActiveSettings::EnableDumpRecompilerFunctions(bool state)
+{
+	s_dump_recompiler_functions = state;
 }
 
 void ActiveSettings::EnableDumpLibcurlRequests(bool state)

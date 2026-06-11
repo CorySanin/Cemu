@@ -256,17 +256,17 @@ namespace nsyshid
 						 device->m_productId);
 	}
 
-	bool FindDeviceById(uint16 vendorId, uint16 productId)
+	std::shared_ptr<Device> FindDeviceById(uint16 vendorId, uint16 productId)
 	{
 		std::lock_guard<std::recursive_mutex> lock(hidMutex);
 		for (const auto& device : deviceList)
 		{
 			if (device->m_vendorId == vendorId && device->m_productId == productId)
 			{
-				return true;
+				return device;
 			}
 		}
-		return false;
+		return nullptr;
 	}
 
 	void export_HIDAddClient(PPCInterpreter_t* hCPU)
@@ -876,7 +876,7 @@ namespace nsyshid
 		return nullptr;
 	}
 
-	bool Backend::FindDeviceById(uint16 vendorId, uint16 productId)
+	std::shared_ptr<Device> Backend::FindDeviceById(uint16 vendorId, uint16 productId)
 	{
 		return nsyshid::FindDeviceById(vendorId, productId);
 	}
@@ -944,23 +944,46 @@ namespace nsyshid
 		this->m_hid = hid;
 	}
 
-	void load()
+	class : public COSModule
 	{
-		osLib_addFunction("nsyshid", "HIDAddClient", export_HIDAddClient);
-		osLib_addFunction("nsyshid", "HIDDelClient", export_HIDDelClient);
-		osLib_addFunction("nsyshid", "HIDGetDescriptor", export_HIDGetDescriptor);
-		osLib_addFunction("nsyshid", "HIDSetIdle", export_HIDSetIdle);
-		osLib_addFunction("nsyshid", "HIDSetProtocol", export_HIDSetProtocol);
-		osLib_addFunction("nsyshid", "HIDSetReport", export_HIDSetReport);
+		public:
+		std::string_view GetName() override
+		{
+			return "nsyshid";
+		}
 
-		osLib_addFunction("nsyshid", "HIDRead", export_HIDRead);
-		osLib_addFunction("nsyshid", "HIDWrite", export_HIDWrite);
+		void RPLMapped() override
+		{
+			osLib_addFunction("nsyshid", "HIDAddClient", export_HIDAddClient);
+			osLib_addFunction("nsyshid", "HIDDelClient", export_HIDDelClient);
+			osLib_addFunction("nsyshid", "HIDGetDescriptor", export_HIDGetDescriptor);
+			osLib_addFunction("nsyshid", "HIDSetIdle", export_HIDSetIdle);
+			osLib_addFunction("nsyshid", "HIDSetProtocol", export_HIDSetProtocol);
+			osLib_addFunction("nsyshid", "HIDSetReport", export_HIDSetReport);
 
-		osLib_addFunction("nsyshid", "HIDDecodeError", export_HIDDecodeError);
+			osLib_addFunction("nsyshid", "HIDRead", export_HIDRead);
+			osLib_addFunction("nsyshid", "HIDWrite", export_HIDWrite);
 
-		// initialise whitelist
-		Whitelist::GetInstance();
+			osLib_addFunction("nsyshid", "HIDDecodeError", export_HIDDecodeError);
 
-		AttachDefaultBackends();
+		};
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				// initialise whitelist
+				Whitelist::GetInstance();
+				AttachDefaultBackends();
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+			}
+		}
+	}s_COSnsyshidModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnsyshidModule;
 	}
+
 } // namespace nsyshid

@@ -39,7 +39,6 @@ enum class LogType : sint32
 	NN_SL = 26,
 
 	TextureReadback = 29,
-
 	ProcUi = 39,
 	nlibcurl = 41,
 
@@ -47,12 +46,13 @@ enum class LogType : sint32
 
 	NFC	= 41,
 	NTAG = 42,
+	Recompiler = 60,
 };
 
 template <>
 struct fmt::formatter<std::u8string_view> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(std::u8string_view v, FormatContext& ctx) 
+	auto format(std::u8string_view v, FormatContext& ctx)
 	{
 		string_view s((char*)v.data(), v.size());
 		return formatter<string_view>::format(s, ctx);
@@ -100,7 +100,7 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 	}
 	return true;
 }
- 
+
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 {
@@ -125,6 +125,9 @@ bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 
 #define cemuLog_logDebugOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_logDebug(__VA_ARGS__); } }
 
+// utility function for logging binary data as a hex dump
+void cemuLog_logHexDump(LogType type, const void* data, size_t size, size_t lineSize = 16);
+
 // cafe lib calls
 bool cemuLog_advancedPPCLoggingEnabled();
 
@@ -133,3 +136,14 @@ uint64 cemuLog_getFlag(LogType type);
 fs::path cemuLog_GetLogFilePath();
 void cemuLog_createLogFile(bool triggeredByCrash);
 [[nodiscard]] std::unique_lock<std::recursive_mutex> cemuLog_acquire(); // used for logging multiple lines at once
+
+class LoggingCallbacks
+{
+  public:
+	virtual void Log(std::string_view filter, std::string_view message) {};
+	virtual void Log(std::string_view filter, std::wstring_view message) {};
+	virtual ~LoggingCallbacks() = default;
+};
+
+void cemuLog_setCallbacks(LoggingCallbacks* loggingCallbacks);
+void cemuLog_clearCallbacks();

@@ -87,7 +87,7 @@ namespace nn
 			if (httpCode != 200)
 				return OLV_RESULT_STATUS(httpCode + 4000);
 
-			std::string request_name = doc.select_single_node("//request_name").node().child_value();
+			std::string request_name = doc.select_node("//request_name").node().child_value();
 			if (request_name.size() == 0)
 			{
 				cemuLog_log(LogType::Force, "Community download response doesn't contain <request_name>");
@@ -100,7 +100,7 @@ namespace nn
 				return OLV_RESULT_INVALID_XML;
 			}
 
-			pugi::xml_node communities = doc.select_single_node("//communities").node();
+			pugi::xml_node communities = doc.select_node("//communities").node();
 			if (!communities)
 			{
 				cemuLog_log(LogType::Force, "Community download response doesn't contain <communities>");
@@ -145,7 +145,8 @@ namespace nn
 
 				if (name.size() != 0)
 				{
-					auto name_utf16 = StringHelpers::FromUtf8(name).substr(0, 128);
+					auto name_utf16 = StringHelpers::FromUtf8(name);
+					name_utf16.resize(std::min<size_t>(name_utf16.size(), 128));
 					if (name_utf16.size() != 0)
 					{
 						for (int i = 0; i < name_utf16.size(); i++)
@@ -160,7 +161,8 @@ namespace nn
 
 				if (description.size() != 0)
 				{
-					auto description_utf16 = StringHelpers::FromUtf8(description).substr(0, 256);
+					auto description_utf16 = StringHelpers::FromUtf8(description);
+					description_utf16.resize(std::min<size_t>(description_utf16.size(), 256));
 					if (description_utf16.size() != 0)
 					{
 						for (int i = 0; i < description_utf16.size(); i++)
@@ -206,7 +208,8 @@ namespace nn
 
 				if (screen_name.size() != 0)
 				{
-					auto screen_name_utf16 = StringHelpers::FromUtf8(screen_name).substr(0, 32);
+					auto screen_name_utf16 = StringHelpers::FromUtf8(screen_name);
+					screen_name_utf16.resize(std::min<size_t>(screen_name_utf16.size(), 32));
 					if (screen_name_utf16.size() != 0)
 					{
 						for (int i = 0; i < screen_name_utf16.size(); i++)

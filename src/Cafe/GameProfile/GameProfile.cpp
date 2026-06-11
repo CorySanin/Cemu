@@ -106,7 +106,7 @@ bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
 template <typename T>
 bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName, T& option, T minVal, T maxVal)
 {
-	static_assert(std::is_integral<T>::value);
+	static_assert(std::is_integral_v<T>);
 	auto option_value = iniParser.FindOption(optionName);
 	if (!option_value)
 		return false;
@@ -127,13 +127,13 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 	{
 		cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 		return false;
-	}	
+	}
 }
 
 template<typename T>
 bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T& option)
 {
-	static_assert(std::is_enum<T>::value);
+	static_assert(std::is_enum_v<T>);
 	auto option_value = iniParser.FindOption(optionName);
 	if (!option_value)
 		return false;
@@ -224,8 +224,13 @@ bool GameProfile::Load(uint64_t title_id)
 			gameProfile_loadIntegerOption(&iniParser, "graphics_api", &graphicsApi, -1, 0, 1);
 			if (graphicsApi.value != -1)
 				m_graphics_api = (GraphicAPI)graphicsApi.value;
-			
+
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
+#if ENABLE_METAL
+			gameProfile_loadBooleanOption2(iniParser, "shaderFastMath", m_shaderFastMath);
+			gameProfile_loadEnumOption(iniParser, "metalBufferCacheMode2", m_metalBufferCacheMode);
+			gameProfile_loadEnumOption(iniParser, "positionInvariance2", m_positionInvariance);
+#endif
 
 			// legacy support
 			auto option_precompiledShaders = iniParser.FindOption("precompiledShaders");
@@ -277,7 +282,7 @@ bool GameProfile::Load(uint64_t title_id)
 void GameProfile::Save(uint64_t title_id)
 {
 	auto gameProfileDir = ActiveSettings::GetConfigPath("gameProfiles");
-	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec)) 
+	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec))
 		fs::create_directories(gameProfileDir, ex_ec);
 	auto gameProfilePath = gameProfileDir / fmt::format("{:016x}.ini", title_id);
 	FileStream* fs = FileStream::createFile2(gameProfilePath);
@@ -292,22 +297,25 @@ void GameProfile::Save(uint64_t title_id)
 
 #define WRITE_OPTIONAL_ENTRY(__NAME) if (m_##__NAME) fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME.value()).c_str());
 #define WRITE_ENTRY(__NAME) fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME).c_str());
+#define WRITE_ENTRY_NUMBERED(__NAME, __NUM) fs->writeLine(fmt::format("{} = {}", #__NAME #__NUM, m_##__NAME).c_str());
 
 	fs->writeLine("[General]");
 	WRITE_OPTIONAL_ENTRY(loadSharedLibraries);
 	WRITE_ENTRY(startWithPadView);
-
 	fs->writeLine("");
-
 
 	fs->writeLine("[CPU]");
 	WRITE_OPTIONAL_ENTRY(cpuMode);
 	WRITE_ENTRY(threadQuantum);
-
 	fs->writeLine("");
 
 	fs->writeLine("[Graphics]");
 	WRITE_ENTRY(accurateShaderMul);
+#if ENABLE_METAL
+	WRITE_ENTRY(shaderFastMath);
+	WRITE_ENTRY_NUMBERED(metalBufferCacheMode, 2);
+	WRITE_ENTRY_NUMBERED(positionInvariance, 2);
+#endif
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
@@ -323,6 +331,7 @@ void GameProfile::Save(uint64_t title_id)
 
 #undef WRITE_OPTIONAL_ENTRY
 #undef WRITE_ENTRY
+#undef WRITE_ENTRY_NUMBERED
 
 	delete fs;
 }
@@ -337,6 +346,11 @@ void GameProfile::ResetOptional()
 
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
+#if ENABLE_METAL
+	m_shaderFastMath = true;
+	m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
+	m_positionInvariance = PositionInvariance::Auto;
+#endif
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
 	m_cpuMode.reset(); // CPUModeOption::kSingleCoreRecompiler;
@@ -354,9 +368,14 @@ void GameProfile::Reset()
 	// general settings
 	m_loadSharedLibraries = true;
 	m_startWithPadView = false;
-	
+
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
+#if ENABLE_METAL
+	m_shaderFastMath = true;
+	m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
+	m_positionInvariance = PositionInvariance::Auto;
+#endif
 	m_precompiledShaders = PrecompiledShaderOption::Auto;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;

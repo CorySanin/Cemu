@@ -98,6 +98,14 @@ using sint32 = int32_t;
 using sint16 = int16_t;
 using sint8 = int8_t;
 
+#if _MSC_VER
+#ifndef _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+#endif
+
 // types with explicit big endian order
 #include "betype.h"
 
@@ -110,6 +118,39 @@ using uint8le = uint8_t;
 // logging
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
+
+// localization
+namespace
+{
+	std::function<std::string(std::string_view)> g_translate;
+}
+
+inline void SetTranslationCallback(std::function<std::string(std::string_view)> translate)
+{
+	g_translate = translate;
+}
+
+#define TR_NOOP(str) str
+
+inline std::string _tr(std::string_view text)
+{
+	if (g_translate)
+		return g_translate(text);
+
+	return std::string{text};
+}
+
+template<typename... TArgs>
+inline std::string _tr(fmt::format_string<TArgs...> text, TArgs... args)
+{
+	if (g_translate)
+	{
+		std::string_view textSV{text.get().data(), text.get().size()};
+		return fmt::format(fmt::runtime(g_translate(textSV)), std::forward<TArgs>(args)...);
+	}
+
+	return fmt::format(text, std::forward<TArgs>(args)...);
+}
 
 // manual endian-swapping
 
@@ -143,6 +184,12 @@ inline uint64 _swapEndianU64(uint64 v)
 {
 #if BOOST_OS_MACOS
     return OSSwapInt64(v);
+#elif BOOST_OS_BSD
+#ifdef __OpenBSD__
+    return swap64(v);
+#else // FreeBSD and NetBSD
+    return bswap64(v);
+#endif
 #else
     return bswap_64(v);
 #endif
@@ -152,6 +199,12 @@ inline uint32 _swapEndianU32(uint32 v)
 {
 #if BOOST_OS_MACOS
     return OSSwapInt32(v);
+#elif BOOST_OS_BSD
+#ifdef __OpenBSD__
+    return swap32(v);
+#else // FreeBSD and NetBSD
+    return bswap32(v);
+#endif
 #else
     return bswap_32(v);
 #endif
@@ -161,6 +214,12 @@ inline sint32 _swapEndianS32(sint32 v)
 {
 #if BOOST_OS_MACOS
     return (sint32)OSSwapInt32((uint32)v);
+#elif BOOST_OS_BSD
+#ifdef __OpenBSD__
+    return (sint32)swap32((uint32)v);
+#else // FreeBSD and NetBSD
+    return (sint32)bswap32((uint32)v);
+#endif
 #else
     return (sint32)bswap_32((uint32)v);
 #endif
@@ -310,7 +369,8 @@ inline uint64 __rdtsc()
 
 inline void _mm_mfence()
 {
-    
+	asm volatile("" ::: "memory");
+	std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
@@ -385,8 +445,6 @@ template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
 template <typename T1, typename T2>
 constexpr bool HAS_BIT(T1 value, T2 index) { return (value & ((T1)1 << index)) != 0; }
-template <typename T>
-constexpr void SAFE_RELEASE(T& p) { if (p) { p->Release(); p = nullptr; } }
 
 template <typename T>
 constexpr uint32_t ppcsizeof() { return (uint32_t) sizeof(T); }
@@ -453,6 +511,11 @@ bool match_any_of(T1&& value, Types&&... others)
 #elif BOOST_OS_MACOS
 	return std::chrono::steady_clock::time_point(
 		std::chrono::nanoseconds(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)));
+#elif BOOST_OS_BSD
+	struct timespec tp;
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	return std::chrono::steady_clock::time_point(
+		std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
 #endif
 }
 
@@ -590,7 +653,8 @@ struct fmt::formatter<betype<T>> : fmt::formatter<T>
 namespace stdx
 {
 	// std::to_underlying
-    template <typename EnumT, typename = std::enable_if_t < std::is_enum<EnumT>{} >>
+    template <typename EnumT>
+		requires (std::is_enum_v<EnumT>)
         constexpr std::underlying_type_t<EnumT> to_underlying(EnumT e) noexcept {
         return static_cast<std::underlying_type_t<EnumT>>(e);
     };
@@ -616,4 +680,36 @@ namespace stdx
 		scope_exit& operator=(scope_exit) = delete;
 		void release() { m_released = true;}
 	};
+
+	// Xcode 16 doesn't have std::atomic_ref support and we provide a minimalist reimplementation as fallback
+#ifdef __cpp_lib_atomic_ref
+	#include <atomic>
+	template<typename T>
+	using atomic_ref = std::atomic_ref<T>;
+#else
+	template<typename T>
+	class atomic_ref
+	{
+		static_assert(std::is_trivially_copyable_v<T>, "atomic_ref requires trivially copyable types");
+	public:
+		using value_type = T;
+
+		explicit atomic_ref(T& obj) noexcept : ptr_(std::addressof(obj)) {}
+
+		T load(std::memory_order order = std::memory_order_seq_cst) const noexcept
+		{
+			auto aptr = reinterpret_cast<std::atomic<T>*>(ptr_);
+			return aptr->load(order);
+		}
+
+		void store(T desired, std::memory_order order = std::memory_order_seq_cst) const noexcept
+		{
+			auto aptr = reinterpret_cast<std::atomic<T>*>(ptr_);
+			aptr->store(desired, order);
+		}
+
+	private:
+		T* ptr_;
+	};
+#endif
 }

@@ -27,11 +27,6 @@ struct LatteGPUState_t
 	uint32 contextControl1;
 	// optional features
 	bool allowFramebufferSizeOptimization{false}; // allow using scissor box as size hint to determine non-padded rendertarget size
-	// draw context
-	struct  
-	{
-		uint32 numInstances;
-	}drawContext;
 	// stats
 	uint32 frameCounter;
 	uint32 flipCounter; // increased by one everytime a vsync + flip happens
@@ -47,8 +42,6 @@ struct LatteGPUState_t
 	gx2GPUSharedArea_t* sharedArea; // quick reference to shared area
 	MPTR sharedAreaAddr;
 	// other
-	// todo: Currently we have the command buffer logic implemented as a FIFO ringbuffer. On real HW it's handled as a series of command buffers that are pushed individually.
-	std::atomic<uint64> lastSubmittedCommandBufferTimestamp;
 	uint32 gx2InitCalled; // incremented every time GX2Init() is called
 	// OpenGL control
 	uint32 glVendor; // GLVENDOR_*
@@ -56,6 +49,8 @@ struct LatteGPUState_t
 	// temporary (replace with proper solution later)
 	bool tvBufferUsesSRGB;
 	bool drcBufferUsesSRGB;
+	float tvGamma = 0.0f;
+	float drcGamma = 0.0f;
 	// draw state
 	bool activeShaderHasError; // if try, at least one currently bound shader stage has an error and cannot be used for drawing
 	bool repeatTextureInitialization; // if set during rendertarget or texture initialization, repeat the process (textures likely have been invalidated)
@@ -74,8 +69,6 @@ struct LatteGPUState_t
 };
 
 extern LatteGPUState_t LatteGPUState;
-
-extern uint8* gxRingBufferReadPtr; // currently active read pointer (gx2 ring buffer or display list)
 
 // texture
 

@@ -1,5 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
-#include "gui/guiWrapper.h"
+#include "WindowSystem.h"
 
 #include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
@@ -19,7 +19,38 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 
-#include "gui/canvas/OpenGLCanvas.h"
+class DefaultOpenGLCanvasCallbacks : public OpenGLCanvasCallbacks
+{
+} g_defaultOpenGLCanvasCallbacks;
+
+OpenGLCanvasCallbacks* g_openGLCanvasCallbacks = &g_defaultOpenGLCanvasCallbacks;
+
+void SetOpenGLCanvasCallbacks(OpenGLCanvasCallbacks* callbacks)
+{
+	cemu_assert_debug(g_openGLCanvasCallbacks == &g_defaultOpenGLCanvasCallbacks);
+	g_openGLCanvasCallbacks = callbacks;
+}
+
+void ClearOpenGLCanvasCallbacks()
+{
+	cemu_assert_debug(g_openGLCanvasCallbacks != &g_defaultOpenGLCanvasCallbacks);
+	g_openGLCanvasCallbacks = &g_defaultOpenGLCanvasCallbacks;
+}
+
+bool GLCanvas_HasPadViewOpen()
+{
+	return g_openGLCanvasCallbacks->HasPadViewOpen();
+}
+
+bool GLCanvas_MakeCurrent(bool padView)
+{
+	return g_openGLCanvasCallbacks->MakeCurrent(padView);
+}
+
+void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
+{
+	g_openGLCanvasCallbacks->SwapBuffers(swapTV, swapDRC);
+}
 
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
@@ -114,6 +145,8 @@ OpenGLRenderer::~OpenGLRenderer()
 {
 	if(m_pipeline != 0)
 		glDeleteProgramPipelines(1, &m_pipeline);
+
+	glDeleteBuffers(1, &m_backbufferBlit_uniformBuffer);
 }
 
 OpenGLRenderer* OpenGLRenderer::GetInstance()
@@ -210,7 +243,7 @@ void LoadOpenGLImports()
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 }
-#elif BOOST_OS_LINUX
+#elif BOOST_OS_LINUX || BOOST_OS_BSD
 GL_IMPORT _GetOpenGLFunction(void* hLib, PFNGLXGETPROCADDRESSPROC func, const char* name)
 {
 	GL_IMPORT r = (GL_IMPORT)func((const GLubyte*)name);
@@ -245,7 +278,7 @@ void LoadOpenGLImports()
 #undef EGLFUNC
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_BSD
 // dummy function for all code that is statically linked with cemu and attempts to use eglSwapInterval
 // used to suppress wxWidgets calls to eglSwapInterval
 extern "C"
@@ -339,6 +372,10 @@ void OpenGLRenderer::Initialize()
 		glBindFramebuffer(GL_FRAMEBUFFER_EXT, glRendererState.clearFBO);
 		glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
 	}
+
+	// create uniform buffers for backbufferblit
+	glCreateBuffers(1, &m_backbufferBlit_uniformBuffer);
+	glNamedBufferStorage(m_backbufferBlit_uniformBuffer, sizeof(RendererOutputShader::OutputUniformVariables), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
 	draw_init();
 
@@ -479,8 +516,7 @@ void OpenGLRenderer::ClearColorbuffer(bool padView)
 
 void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView)
 {
-	const bool hasScreenshotRequest = gui_hasScreenshotRequest();
-	if(!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
+	if(!m_screenshot_requested && m_screenshot_state == ScreenshotState::None)
 		return;
 
 	if (IsPadWindowActive())
@@ -563,9 +599,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	{
 		int windowWidth, windowHeight;
 		if (padView)
-			gui_getPadWindowPhysSize(windowWidth, windowHeight);
+			WindowSystem::GetPadWindowPhysSize(windowWidth, windowHeight);
 		else
-			gui_getWindowPhysSize(windowWidth, windowHeight);
+			WindowSystem::GetWindowPhysSize(windowWidth, windowHeight);
 		g_renderer->renderTarget_setViewport(0, 0, windowWidth, windowHeight, 0.0f, 1.0f);
 		g_renderer->ClearColorbuffer(padView);
 	}
@@ -573,7 +609,12 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	shader_unbind(RendererShader::ShaderType::kGeometry);
 	shader_bind(shader->GetVertexShader());
 	shader_bind(shader->GetFragmentShader());
-	shader->SetUniformParameters(*texView, {imageWidth, imageHeight});
+
+	// update and bind uniform buffer
+	auto uniformBuffer = shader->FillUniformBlockBuffer(*texView, {imageWidth, imageHeight}, padView);
+	glNamedBufferSubData(m_backbufferBlit_uniformBuffer, 0, sizeof(uniformBuffer), &uniformBuffer);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_backbufferBlit_uniformBuffer);
 
 	// set viewport
 	glViewportIndexedf(0, imageX, imageY, imageWidth, imageHeight);
@@ -590,14 +631,12 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
 	texViewGL->samplerState.filterMag = 0xFFFFFFFF;
 
-	if ((!padView && !LatteGPUState.tvBufferUsesSRGB) || (padView && !LatteGPUState.drcBufferUsesSRGB))
-		glDisable(GL_FRAMEBUFFER_SRGB);
+	glDisable(GL_FRAMEBUFFER_SRGB);
 
 	uint16 indexData[6] = { 0,1,2,3,4,5 };
 	glDrawRangeElements(GL_TRIANGLES, 0, 5, 6, GL_UNSIGNED_SHORT, indexData);
 
-	if ((!padView && !LatteGPUState.tvBufferUsesSRGB) || (padView && !LatteGPUState.drcBufferUsesSRGB))
-		glEnable(GL_FRAMEBUFFER_SRGB);
+	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	// unbind texture
 	texture_bindAndActivate(nullptr, 0);

@@ -25,7 +25,7 @@ class IntervalTree2
 	// static TNodeObject* Split(TNodeObject* nodeObject, TRangeData firstRangeBegin, TRangeData firstRangeEnd, TRangeData secondRangeBegin, TRangeData secondRangeEnd)
 	// Cut a hole into an existing range and split it in two. Should return the newly created node object after the hole
 
-	static_assert(std::is_pointer<TNodeObject>::value == false, "TNodeObject must be a non-pointer type");
+	static_assert(!std::is_pointer_v<TNodeObject>, "TNodeObject must be a non-pointer type");
 
 	struct InternalRange
 	{
@@ -290,7 +290,6 @@ public:
 	{
 		if (m_hasCacheAlloc)
 		{
-			cemu_assert_debug(isInUse() == false);
 			g_gpuBufferHeap->freeOffset(m_cacheOffset);
 			m_hasCacheAlloc = false;
 		}
@@ -441,7 +440,7 @@ public:
 			if (uploadBegin >= uploadEnd)
 				return; // reserve range not within invalidation or range is zero sized
 
-			
+
 			if (uploadBegin == m_invalidationRangeBegin)
 			{
 				m_invalidationRangeBegin = uploadEnd;
@@ -536,7 +535,7 @@ private:
 	MPTR m_invalidationRangeBegin;
 	MPTR m_invalidationRangeEnd;
 
-	BufferCacheNode(MPTR rangeBegin, MPTR rangeEnd): m_rangeBegin(rangeBegin), m_rangeEnd(rangeEnd) 
+	BufferCacheNode(MPTR rangeBegin, MPTR rangeEnd): m_rangeBegin(rangeBegin), m_rangeEnd(rangeEnd)
 	{
 		flagInUse();
 		cemu_assert_debug(rangeBegin < rangeEnd);
@@ -740,7 +739,7 @@ private:
 		cemu_assert_debug(rangeEnd <= pageRangeEnd);
 		cemu_assert_debug((rangeBegin & 0xF) == 0);
 		cemu_assert_debug((rangeEnd & 0xF) == 0);
-		
+
 		auto pageInfo = m_pageInfo.data() + pageIndex;
 		pageInfo->hasStreamoutData = true;
 
@@ -805,7 +804,7 @@ public:
         s_allCacheNodes.clear();
         g_deallocateQueue.clear();
     }
-	
+
 	static void ProcessDeallocations()
 	{
 		for(auto& itr : g_deallocateQueue)
@@ -836,6 +835,8 @@ public:
 				continue;
 			}
 			// delete range
+			if (node->m_hasCacheAlloc)
+				cemu_assert_debug(!node->isInUse());
 			node->ReleaseCacheMemoryImmediately();
 			LatteBufferCache_removeSingleNodeFromTree(node);
 			delete node;

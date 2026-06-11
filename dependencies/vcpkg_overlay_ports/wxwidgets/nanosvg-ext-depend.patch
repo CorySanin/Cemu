@@ -1,0 +1,12 @@
+diff --git a/build/cmake/wxWidgetsConfig.cmake.in b/build/cmake/wxWidgetsConfig.cmake.in
+index 2f3a735d92..c134900764 100644
+--- a/build/cmake/wxWidgetsConfig.cmake.in
++++ b/build/cmake/wxWidgetsConfig.cmake.in
+@@ -155,6 +155,7 @@ foreach(libname @wxLIB_TARGETS@)
+ endforeach()
+ 
+ include(CMakeFindDependencyMacro)
++find_dependency(NanoSVG CONFIG)
+ 
+ if(TARGET wx::wxnet AND @wxUSE_WEBREQUEST_CURL@)
+     # make sure CURL targets are available:

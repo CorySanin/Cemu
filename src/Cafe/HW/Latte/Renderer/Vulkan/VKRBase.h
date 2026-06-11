@@ -45,7 +45,7 @@ public:
 	VKRMoveableRefCounter(VKRMoveableRefCounter&& rhs) noexcept
 	{
 		this->refs = std::move(rhs.refs);
-		this->m_refCount = rhs.m_refCount;
+		this->m_refCount.store(rhs.m_refCount);
 		rhs.m_refCount = 0;
 		this->selfRef = rhs.selfRef;
 		rhs.selfRef = nullptr;
@@ -88,21 +88,13 @@ protected:
 		// does nothing by default
 	}
 
-	int m_refCount{};
+	std::atomic_int_least32_t m_refCount{};
 private:
 	VKRMoveableRefCounterRef* selfRef;
 	std::vector<VKRMoveableRefCounterRef*> refs;
 #ifdef CEMU_DEBUG_ASSERT
 	std::vector<VKRMoveableRefCounterRef*> reverseRefs;
 #endif
-
-	void moveObj(VKRMoveableRefCounter&& rhs)
-	{
-		this->refs = std::move(rhs.refs);
-		this->m_refCount = rhs.m_refCount;
-		this->selfRef = rhs.selfRef;
-		this->selfRef->ref = this;
-	}
 };
 
 class VKRDestructibleObject : public VKRMoveableRefCounter
@@ -221,11 +213,14 @@ public:
 	VKRObjectPipeline();
 	~VKRObjectPipeline() override;
 
-	void setPipeline(VkPipeline newPipeline);
+	void SetPipeline(VkPipeline newPipeline);
+	VkPipeline GetPipeline() const { return m_pipeline; }
 
-	VkPipeline pipeline = VK_NULL_HANDLE;
-	VkDescriptorSetLayout vertexDSL = VK_NULL_HANDLE, pixelDSL = VK_NULL_HANDLE, geometryDSL = VK_NULL_HANDLE;
-	VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+	VkDescriptorSetLayout m_vertexDSL = VK_NULL_HANDLE, m_pixelDSL = VK_NULL_HANDLE, m_geometryDSL = VK_NULL_HANDLE;
+	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+
+private:
+	VkPipeline m_pipeline = VK_NULL_HANDLE;
 };
 
 class VKRObjectDescriptorSet : public VKRDestructibleObject

@@ -2,26 +2,26 @@
 
 #ifdef ENABLE_DISCORD_RPC
 
-#include <discord_rpc.h>
-#include <boost/algorithm/string.hpp>
-#include "Common/version.h"
+#include "DiscordRPCLite.h"
 
 DiscordPresence::DiscordPresence()
 {
-	DiscordEventHandlers handlers{};
-	Discord_Initialize("1098390888738201673", &handlers, 1, nullptr);
+	m_rpcClient = new DiscordRPCLite("1098390888738201673");
 	UpdatePresence(Idling);
 }
 
 DiscordPresence::~DiscordPresence()
 {
 	ClearPresence();
-	Discord_Shutdown();
+	if (m_rpcClient)
+		delete m_rpcClient;
 }
 
 void DiscordPresence::UpdatePresence(State state, const std::string& text, const uint64 titleId) const
 {
-	DiscordRichPresence discord_presence{};
+	if (!m_rpcClient)
+		return;
+	DiscordLiteRichPresence discordPresence{};
 
 	std::string state_string, details_string, icon_string;
 	std::stringstream ss;
@@ -152,13 +152,13 @@ void DiscordPresence::UpdatePresence(State state, const std::string& text, const
 		assert(false);
 		break;
 	}
-	boost::algorithm::to_lower(icon_string);
-	discord_presence.details = details_string.c_str();
-	discord_presence.state = state_string.c_str();
-	// discord_presence.startTimestamp = time(nullptr);
-	discord_presence.largeImageText = BUILD_VERSION_WITH_NAME_STRING;
-	discord_presence.largeImageKey = icon_string.c_str();
-	Discord_UpdatePresence(&discord_presence);
+
+	discordPresence.details = details_string;
+	discordPresence.state = state_string;
+	// discordPresence.startTimestamp = time(nullptr);
+	discordPresence.largeImageText = BUILD_VERSION_WITH_NAME_STRING;
+	discordPresence.largeImageKey = icon_string;
+	m_rpcClient->UpdateRichPresence(discordPresence);
 }
 
 bool DiscordPresence::MapStrMatch(const std::string& map, const std::string& check) const
@@ -168,7 +168,9 @@ bool DiscordPresence::MapStrMatch(const std::string& map, const std::string& che
 
 void DiscordPresence::ClearPresence() const
 {
-	Discord_ClearPresence();
+	if (!m_rpcClient)
+		return;
+	m_rpcClient->ClearRichPresence();
 }
 
 #endif

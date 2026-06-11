@@ -1,5 +1,6 @@
 #include "nn_olv_UploadFavoriteTypes.h"
 #include <algorithm>
+#include <cstddef>
 
 namespace nn
 {
@@ -35,9 +36,9 @@ namespace nn
 
 			char requestUrl[512];
 			if (pParam->flags & UploadFavoriteToCommunityDataParam::FLAG_DELETION)
-				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.unfavorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
+				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%u.unfavorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			else 
-				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.favorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
+				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%u.favorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			
 			CurlRequestHelper req;
 			req.initate(ActiveSettings::GetNetworkService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
@@ -87,12 +88,12 @@ namespace nn
 
 			if (pOutData)
 			{
-				std::string_view app_data = doc.select_single_node("//app_data").node().child_value();
-				std::string_view community_id = doc.select_single_node("//community_id").node().child_value();
-				std::string_view name = doc.select_single_node("//name").node().child_value();
-				std::string_view description = doc.select_single_node("//description").node().child_value();
-				std::string_view pid = doc.select_single_node("//pid").node().child_value();
-				std::string_view icon = doc.select_single_node("//icon").node().child_value();
+				std::string_view app_data = doc.select_node("//app_data").node().child_value();
+				std::string_view community_id = doc.select_node("//community_id").node().child_value();
+				std::string_view name = doc.select_node("//name").node().child_value();
+				std::string_view description = doc.select_node("//description").node().child_value();
+				std::string_view pid = doc.select_node("//pid").node().child_value();
+				std::string_view icon = doc.select_node("//icon").node().child_value();
 
 				if (app_data.size() != 0)
 				{
@@ -115,7 +116,8 @@ namespace nn
 
 				if (name.size() != 0)
 				{
-					auto name_utf16 = StringHelpers::FromUtf8(name).substr(0, 128);
+					auto name_utf16 = StringHelpers::FromUtf8(name);
+					name_utf16.resize(std::min<size_t>(name_utf16.size(), 128));
 					if (name_utf16.size() != 0)
 					{
 						for (int i = 0; i < name_utf16.size(); i++)
@@ -130,7 +132,8 @@ namespace nn
 
 				if (description.size() != 0)
 				{
-					auto description_utf16 = StringHelpers::FromUtf8(description).substr(0, 256);
+					auto description_utf16 = StringHelpers::FromUtf8(description);
+					description_utf16.resize(std::min<size_t>(description_utf16.size(), 256));
 					if (description_utf16.size() != 0)
 					{
 						for (int i = 0; i < description_utf16.size(); i++)
