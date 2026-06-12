@@ -1,10 +1,17 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/HW/MMU/MMU.h"
 #include "interface/WindowSystem.h"
 #include "wxCemuConfig.h"
 #include "wxgui/wxgui.h"
 #include "wxgui/MainWindow.h"
 
+#include <cstdio>
+#include <string>
+#include <wx/dataobj.h>
+#include <wx/event.h>
+#include <wx/font.h>
 #include <wx/mstream.h>
+#include <wx/clipbrd.h>
 
 #include "wxgui/GameUpdateWindow.h"
 #include "wxgui/PadViewFrame.h"
@@ -167,6 +174,8 @@ enum
 	MAINFRAME_MENU_ID_HELP_UPDATE,
 	// custom
 	MAINFRAME_ID_TIMER1 = 21800,
+	MAINFRAME_MENU_ID_SPOON_GRABBER = 69424,
+	MAINFRAME_MENU_ID_SPOON_FIX_CURSOR = 69425
 };
 
 wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
@@ -245,6 +254,8 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugView
 // help menu
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_UPDATE, MainWindow::OnHelpUpdate)
+EVT_MENU(MAINFRAME_MENU_ID_SPOON_GRABBER, MainWindow::OnSpoonGrabber)
+EVT_MENU(MAINFRAME_MENU_ID_SPOON_FIX_CURSOR, MainWindow::OnSpoonFixCursor)
 // misc
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_GAMELIST_REFRESH, MainWindow::OnRequestGameListRefresh)
 
@@ -2080,7 +2091,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(fmt::runtime(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nSource: xapfish.sanin.dev\nOriginal authors: {3}").ToStdString()), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = formatWxString(_("{0} is a fork of Cemu\nVersion {1}\nCompiled on {2}\nSource: xapfish.sanin.dev\nOriginal authors: {3}"), EMULATOR_NAME, BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://cemu.info", "https://cemu.info", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
@@ -2298,6 +2309,158 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 {
 	CemuUpdateWindow test(this);
 	test.ShowModal();
+}
+
+class SpoonGrabberDialog : public wxDialog
+{
+public:
+	SpoonGrabberDialog(wxWindow& parent)
+		: wxDialog(&parent, wxID_ANY, _("Player Doxxer v1.0.0 (Unpatched)"), wxDefaultPosition, wxSize(550, 330), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
+	{
+		Create(&parent);
+	}
+
+	void Create(wxWindow* parent = NULL)
+	{
+		SetIcon(wxICON(M_WND_ICON128));
+
+		wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+
+		wxButton* refreshButton = new wxButton(this, wxID_ANY, _("Refresh"));
+		refreshButton->Bind(wxEVT_BUTTON, &SpoonGrabberDialog::OnRefreshButton, this);
+		mainSizer->Add(refreshButton, 0, wxALL, 5);
+
+		wxButton* copyButton = new wxButton(this, wxID_ANY, _("Copy"));
+		copyButton->Bind(wxEVT_BUTTON, &SpoonGrabberDialog::OnCopyButton, this);
+		mainSizer->Add(copyButton, 0, wxALL, 5);
+
+		m_text = new wxStaticText(this, wxID_ANY, _("(ts will be updated i swear)"));
+		wxFont font(wxDEFAULT, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
+            wxFONTWEIGHT_NORMAL, false);
+		m_text->SetFont(font);
+		mainSizer->Add(m_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+		SetSizer(mainSizer);
+		CentreOnParent();
+
+		GrabShit();
+	}
+
+	void OnRefreshButton(const wxCommandEvent& event) {
+		GrabShit();
+	}
+
+	void OnCopyButton(const wxCommandEvent& event) {
+		if (wxTheClipboard->Open()) {
+			wxTheClipboard->SetData(new wxTextDataObject(m_text->GetLabelText()));
+			wxTheClipboard->Close();
+		}
+	}
+private:
+	wxStaticText* m_text;
+
+	void GrabShit() {
+		if (!CafeSystem::IsTitleRunning()) {
+			m_text->SetLabelText("bro tried to grab nothing (no title open)");
+			return;
+		}
+
+		uint64 id = CafeSystem::GetForegroundTitleId();
+		if (id != 0x0005000010176900 && id != 0x0005000010176a00) {
+			m_text->SetLabelText("ts ain't splatoon dawg");
+			return;
+		}
+
+		if (!memory_isAddressRangeAccessible(0x101DD330, 4)) {
+			m_text->SetLabelText("can't read memory rn bro wait a lil bit");
+			return;
+		}
+		uint32 u = memory_readU32(0x101DD330);
+		if (!memory_isAddressRangeAccessible(u + 0x10, 4)) {
+			m_text->SetLabelText("can't read memory rn bro wait a lil bit");
+			return;
+		}
+		uint32 u2 = memory_readU32(u + 0x10);
+
+		wxString builder;
+		builder.reserve(256); // optional
+
+		builder += wxString::FromUTF8("Player ID | PID        | PID (dec)  | Username\n");
+
+		for (int playerId = 0; playerId < 8; playerId++) {
+			uint32 u3 = memory_readU32(u2 + playerId * 4);
+			uint32 pidRaw = memory_readU32(u3 + 0xD0);
+
+			std::array<uint8, 40> rawBytes;
+			memory_readBytes(u3 + 0x6, rawBytes);
+
+			builder += wxString::Format("%u           0x%08X   %010u", playerId, pidRaw, pidRaw);
+			builder += "   ";
+			
+			const char* utf16Bytes = reinterpret_cast<const char*>(&rawBytes);
+
+			wxMBConvUTF16BE conv;
+			builder += wxString(conv.cMB2WC(utf16Bytes));
+
+			builder += "\n";
+		}
+
+		builder += "\n";
+
+		uint32 ptr = memory_readU32(0x101E8980);
+		if (ptr != 0) {
+			std::array<uint8, 1> b;
+			memory_readBytes(ptr + 0xBD, b);
+			uint8 index = b[0];
+			uint32 sessionID = memory_readU32(ptr + index + 0xCC);
+			builder += wxString::Format("Session ID (dec): %u\n", sessionID);
+        } else {
+			builder += "Session ID (dec): <unavailable>\n";
+		}
+
+		// https://en.cppreference.com/w/cpp/chrono/c/strftime.html
+		std::time_t time = std::time({});
+		char timeString[std::size("yyyy-mm-ddThh:mm:ssZ")];
+		std::strftime(std::data(timeString), std::size(timeString), "%FT%TZ", std::gmtime(&time));
+
+		builder += "Grabbed at ";
+		builder += wxString::FromUTF8(timeString);
+
+		std::cout << builder.utf8_str() << std::endl;
+		m_text->SetLabelText(builder);
+	}
+};
+
+void MainWindow::OnSpoonGrabber(wxCommandEvent& event)
+{
+	if (m_spoon_grabber_dialog && m_spoon_grabber_dialog->IsShown())
+	{
+		m_spoon_grabber_dialog->Destroy();
+		m_spoon_grabber_dialog = nullptr;
+		return;
+	}
+
+	m_spoon_grabber_dialog = new SpoonGrabberDialog(*this);
+	m_spoon_grabber_dialog->Bind(wxEVT_CLOSE_WINDOW, &MainWindow::OnSpoonGrabberClose, this);
+	m_spoon_grabber_dialog->Show(true);
+}
+
+void MainWindow::OnSpoonGrabberClose(wxCloseEvent& event)
+{
+	m_spoon_grabber_dialog->Destroy();
+	m_spoon_grabber_dialog = nullptr;
+}
+
+void MainWindow::OnSpoonFixCursor(wxCommandEvent& event) {
+	auto& instance = InputManager::instance();
+
+	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
+	instance.m_main_mouse.left_down = false;
+	instance.m_main_mouse.left_down_toggle = false;
+	instance.m_main_gyro.capturing = false;
+	instance.m_main_mouse.position = { 0, 0 };
+	ShowCursor(true);
+	SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
 void MainWindow::RecreateMenu()
@@ -2553,6 +2716,12 @@ void MainWindow::RecreateMenu()
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Xapfish"));
 
 	m_menuBar->Append(helpMenu, _("&Help"));
+
+	// help menu
+	wxMenu* evilMenu = new wxMenu();
+	evilMenu->Append(MAINFRAME_MENU_ID_SPOON_GRABBER, _("&Grabber"));
+	evilMenu->Append(MAINFRAME_MENU_ID_SPOON_FIX_CURSOR, _("&Fix cursor"));
+	m_menuBar->Append(evilMenu, _("&Spoon"));
 
 	SetMenuBar(m_menuBar);
 	m_menu_visible = true;

@@ -105,6 +105,9 @@ public:
 	void OnConsoleLanguage(wxCommandEvent& event);
 	void OnHelpAbout(wxCommandEvent& event);
 	void OnHelpUpdate(wxCommandEvent& event);
+	void OnSpoonGrabber(wxCommandEvent& event);
+	void OnSpoonGrabberClose(wxCloseEvent& event);
+	void OnSpoonFixCursor(wxCommandEvent& event);
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
 	void OnPPCInfoToggle(wxCommandEvent& event);
@@ -190,6 +193,7 @@ private:
 
 	wxMenuItem* m_gdbstub_toggle{};
 	DebuggerWindow2* m_debugger_window = nullptr;
+	wxDialog* m_spoon_grabber_dialog = nullptr;
 	LoggingWindow* m_logging_window = nullptr;
 
 	std::future<bool> m_update_available;
